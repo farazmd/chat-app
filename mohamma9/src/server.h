@@ -8,7 +8,8 @@
 // #include <sys/time.h>
 #include <sys/select.h>
 
-int main() {
+
+void start_server() {
 
     int server_socket, total_clients = 30, client_connections[30], client_socket, max_socket_descriptors,
     addrlen, sd, valread;
