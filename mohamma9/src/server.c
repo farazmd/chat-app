@@ -15,7 +15,7 @@ int main()
     fd_set read_descriptors;
     char buf[1000], s[20];
     struct sockaddr_in server_address;
-    struct sockaddr_storage client_address;
+    struct sockaddr_storage client_address, *client_addresses_all[30];
 
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(9002);
@@ -79,6 +79,7 @@ int main()
                 if (client_connections[i] == 0)
                 {
                     client_connections[i] = client_socket;
+                    client_addresses_all[i] = &client_address;
                     printf("Adding to list of sockets as %d\n", i);
 
                     break;

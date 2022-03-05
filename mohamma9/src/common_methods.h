@@ -49,12 +49,12 @@ void getAuthor(void)
 {
     ("I, %s, have read and understood the course academic integrity policy.\n", "mohamma9");
 }
-void listClients(struct sockaddr_in *socket_list[])
+void listClients(struct sockaddr_storage *socket_list[])
 {
     int size_socket_list = sizeof(*socket_list);
     for (int i = 0; i < size_socket_list; i++)
     {
-        printf("Internet Address of client %d is %d \n ", i, socket_list[i]->sin_addr);
-        printf("Port Address of client %d is %d \n ", i, socket_list[i]->sin_port);
+        printf("Internet Address of client %d is %d \n ", i, ((struct sockaddr_in *)socket_list[i])->sin_addr);
+        printf("Port Address of client %d is %d \n ", i, ((struct sockaddr_in *)socket_list[i])->sin_port);
     }
 }
