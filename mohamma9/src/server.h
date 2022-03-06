@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 // #include <sys/time.h>
+#include "common_methods.h"
 #include <sys/select.h>
 
 
@@ -45,6 +46,7 @@ void start_server() {
         FD_SET(server_socket, &read_descriptors); 
         FD_SET(STDIN_FILENO, &read_descriptors); 
         max_socket_descriptors = server_socket; 
+        fflush (stdin);
 
         for ( int i = 0 ; i < total_clients ; i++)  
         {  
@@ -71,7 +73,7 @@ void start_server() {
                 perror("accept");  
                 exit(EXIT_FAILURE);  
             } 
-
+            addClient(&client_address);
             for (int i = 0; i < total_clients; i++)  
             {  
                 //if position is empty 

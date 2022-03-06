@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <string.h>
 #include <netdb.h>
@@ -16,49 +17,114 @@
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
 
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
+struct sockaddr_in * client;
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+void parse_user_input(char *s) {
+    char * token;
+    token = strsep(&s," ");
+    trim_newline(token);
+
+    if (strcmp(token,"IP")==0){
+        getIP();
+    }
+    else if(strcmp(token,"PORT")==0){
+        getPort(client);
+    }
+    else if (strcmp(token,"AUTHOR")==0){
+        getAuthor();
+    }
+    else if (strcmp(token,"LIST")){
+        // listClients();
+    }
+    else {
+        printf("Not a command");
+    }
 }
 
-
+void execute_command(char *command, char* data){
+    printf("Inside execute_command");
+    if (strcmp(command,"IP")==0){
+        getIP();
+    }
+    else if(strcmp(command,"PORT")==0){
+        getPort(client);
+    }
+    else {
+        printf("Not a command");
+    }
+}
 
 int main() {
 
-    int clientSock, databytes,serverSock,rv;
+    int clientSock, databytes,serverSock,temp,max_descriptors;
     char buf[1024];
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
     fd_set read_descriptors;
     struct sockaddr_in client_address,sock_address;
-    struct addrinfo *server;
-    sock_address.sin_family = AF_INET;
-    sock_address.sin_addr.s_addr = INADDR_ANY;
+    struct addrinfo *server,hints;
 
-    if ((rv = getaddrinfo("127.0.0.1", PORT, &sock_address, &server)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    memset(&hints, 0, sizeof hints);
+
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((temp = getaddrinfo("127.0.0.1", PORT, &hints, &server)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(temp));
         return 1;
+    }
+
+    client_address.sin_family = AF_INET;
+    client_address.sin_addr.s_addr = INADDR_ANY;
+    client = &client_address;
+
+    clientSock = socket(AF_INET,SOCK_STREAM,0);
+    if(clientSock < 0){
+        perror("Client: socket");
+    }
+    // setsockopt(clientSock, SOL_SOCKET, SO_RCVLOWAT,&opt,sizeof(opt));
+    // setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    // fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+    // connect(clientSock, server->ai_addr, server->ai_addrlen);
+    if(connect(clientSock, server->ai_addr, server->ai_addrlen)<0){
+        perror("Client: server connect\n");
+        printf("Error\n");
     }
 
     while(1) {
         FD_ZERO(&read_descriptors);
         FD_SET(STDIN_FILENO, &read_descriptors);
-        // TODO: Read data based on input
-    }
+        FD_SET(clientSock, &read_descriptors);
+        max_descriptors = clientSock;
+        fflush (stdin);
 
-    client_address.sin_family = AF_INET;
-    client_address.sin_addr.s_addr = INADDR_ANY;
-    clientSock = socket(server->ai_family,SOCK_STREAM,0);
-    if(clientSock < 0){
-        perror("Client: socket");
-    }
-    if(connect(clientSock,server->ai_addr, server->ai_addrlen) == -1) {
-        close(clientSock);
-        perror("Client connect");
-        exit(1);
+        select(max_descriptors + 1,&read_descriptors, NULL, NULL, NULL);
+
+        if(FD_ISSET(STDIN_FILENO,&read_descriptors)) {
+            char msg[1024];
+            memset(msg, 0, sizeof(msg));
+            fgets (msg, 1024, stdin);
+            trim_newline(msg);
+            parse_user_input(msg);
+        }
+        else if(FD_ISSET(clientSock,&read_descriptors)){
+            printf("Connected\n");
+            databytes = recv(clientSock, buf, MAXDATASIZE-1,MSG_PEEK);
+            printf("%d\n",databytes);
+            if(databytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
+
+                perror("recv");
+                continue;
+            }
+
+            buf[databytes] = '\0';
+
+            printf("client: received '%s'\n",buf);
+        }
+        else {
+            continue;
+        }
     }
 }
 
