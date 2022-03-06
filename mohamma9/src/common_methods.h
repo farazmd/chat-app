@@ -23,7 +23,7 @@ void addClient(struct sockaddr_storage *client){
     _address = *(struct sockaddr_in *)client;
     for (i=0;i<30;i++){
         if (clientList[i]!=NULL){
-            clientList[i] = &client;
+            clientList[i] = client;
             inet_ntop(AF_INET, &_address.sin_addr, myIP, sizeof(myIP));
             break;
         }
@@ -32,7 +32,7 @@ void addClient(struct sockaddr_storage *client){
 
 void removeClient(struct sockaddr_storage *client){
     for (int i=0;i<30;i++){
-        if (clientList[i] == &client){
+        if (clientList[i] == client){
             clientList[i] = NULL;
             free(client);
             break;
@@ -71,11 +71,11 @@ void getIP(void) {
 void getPort(struct sockaddr_in *socket_addr) {
     int myPort;
     myPort = ntohs(socket_addr->sin_port);
-    printf("Local port : %u\n", myPort);
+    printf("PORT: %u\n", myPort);
 }
 
 void getAuthor(void) {
-    ("I, %s, have read and understood the course academic integrity policy.\n", "mohamma9");
+    printf("I, %s, have read and understood the course academic integrity policy.\n", "mohamma9");
 }
 void listClients(struct sockaddr_in* socket_list[]);
 

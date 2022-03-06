@@ -18,6 +18,59 @@
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
 
 struct sockaddr_in * client;
+int clientSock, databytes,serverSock,temp,max_descriptors;
+int loggedIn = 0;
+struct timeval tv;
+fd_set read_descriptors;
+struct sockaddr_in client_address,sock_address;
+struct addrinfo *server,hints;
+
+void login(char* data) {
+    char serverIP[16];
+    char *ip,*port;
+    memset(&hints, 0, sizeof hints);
+    ip = strsep(&data," ");
+    port = data;
+    trim_newline(ip);
+    trim_newline(port);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    clientSock = socket(AF_INET,SOCK_STREAM,0);
+    // setsockopt(clientSock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int));
+    if(clientSock < 0){
+        perror("Client: socket");
+    }
+
+    if ((temp = getaddrinfo(ip, port, &hints, &server)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(temp));
+        // return 1;
+    }
+    if(connect(clientSock, server->ai_addr, server->ai_addrlen)<0){
+        perror("Client: server connect\n");
+        printf("Error\n");
+    }
+    fflush(stdout);
+    // inet_ntop(AF_INET, &server->ai_addr, serverIP, sizeof(serverIP));
+    printf("Connected to server\n");
+    loggedIn = 1;
+}
+
+void logout() {
+    close(clientSock);
+    loggedIn = 0;
+    printf("Logged out from server\n");
+}
+
+void exitChat() {
+    if(loggedIn)
+        logout();
+    exit(0);
+}
+
+void send() {
+    
+}
 
 void parse_user_input(char *s) {
     char * token;
@@ -33,11 +86,27 @@ void parse_user_input(char *s) {
     else if (strcmp(token,"AUTHOR")==0){
         getAuthor();
     }
-    else if (strcmp(token,"LIST")){
+    else if (strcmp(token,"LIST")==0){
+        if(loggedIn)
+            printf("Lists connected users\n");
+        else
+            printf("Login to the server.\n");
         // listClients();
     }
-    else {
-        printf("Not a command");
+    else if (strcmp(token,"LOGIN")==0){
+        login(s);
+    }
+    else if (strcmp(token,"LOGOUT")==0){
+        if(loggedIn)
+            logout();
+        else
+            printf("You are not connected to any server\n");
+    }
+    else if (strcmp(token,"EXIT")==0){
+        exitChat();
+    }
+    else{
+        printf("Invalid Command\n");
     }
 }
 
@@ -55,50 +124,31 @@ void execute_command(char *command, char* data){
 }
 
 int main() {
-
-    int clientSock, databytes,serverSock,temp,max_descriptors;
     char buf[1024];
-    struct timeval tv;
+    int true = 1;
     tv.tv_sec = 3;
     tv.tv_usec = 0;
-    fd_set read_descriptors;
-    struct sockaddr_in client_address,sock_address;
-    struct addrinfo *server,hints;
-
-    memset(&hints, 0, sizeof hints);
-
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((temp = getaddrinfo("127.0.0.1", PORT, &hints, &server)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(temp));
-        return 1;
-    }
-
     client_address.sin_family = AF_INET;
     client_address.sin_addr.s_addr = INADDR_ANY;
     client = &client_address;
 
-    clientSock = socket(AF_INET,SOCK_STREAM,0);
-    if(clientSock < 0){
-        perror("Client: socket");
-    }
     // setsockopt(clientSock, SOL_SOCKET, SO_RCVLOWAT,&opt,sizeof(opt));
     // setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
     // fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
     // connect(clientSock, server->ai_addr, server->ai_addrlen);
-    if(connect(clientSock, server->ai_addr, server->ai_addrlen)<0){
-        perror("Client: server connect\n");
-        printf("Error\n");
-    }
 
     while(1) {
         FD_ZERO(&read_descriptors);
         FD_SET(STDIN_FILENO, &read_descriptors);
-        FD_SET(clientSock, &read_descriptors);
-        max_descriptors = clientSock;
+        if(loggedIn){
+            FD_SET(clientSock, &read_descriptors);
+            max_descriptors = clientSock;
+        }
+        else {
+            max_descriptors = STDIN_FILENO;
+        }
         fflush (stdin);
-
+        printf(">");
         select(max_descriptors + 1,&read_descriptors, NULL, NULL, NULL);
 
         if(FD_ISSET(STDIN_FILENO,&read_descriptors)) {
