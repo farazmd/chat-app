@@ -9,32 +9,34 @@
 #include <sys/select.h>
 #include <arpa/inet.h>
 
-struct sockaddr_storage *clientList[30];
-
-void initClientList(){
+void initClientList(struct sockaddr_storage *clientList){
+    struct sockaddr_storage cp = {0};
     for(int i=0;i<30;i++)
-        clientList[i] = NULL;
+        memcpy(&clientList[i],&cp, sizeof(struct sockaddr_storage));
 }
 
-void addClient(struct sockaddr_storage *client){
+void addClient(struct sockaddr_storage *client,struct sockaddr_storage *clientList){
     int i;
     char myIP[16];
     struct sockaddr_in _address;
     _address = *(struct sockaddr_in *)client;
+    struct sockaddr_storage cp = {0};
+    // printf("Adding Client\n");
     for (i=0;i<30;i++){
-        if (clientList[i]!=NULL){
-            clientList[i] = client;
-            inet_ntop(AF_INET, &_address.sin_addr, myIP, sizeof(myIP));
+        if ( (memcmp(&clientList[i],&cp,sizeof(struct sockaddr_storage))) == 0 ){
+            memcpy(&clientList[i],&client, sizeof(struct sockaddr_storage));
             break;
         }
     }
+    // printf("Client Added\n");
 }
 
-void removeClient(struct sockaddr_storage *client){
+void removeClient(struct sockaddr_storage *client,struct sockaddr_storage *clientList){
+    struct sockaddr_storage cp = {0};
     for (int i=0;i<30;i++){
-        if (clientList[i] == client){
-            clientList[i] = NULL;
-            free(client);
+        if ((memcmp(&clientList[i],&client,sizeof(struct sockaddr_storage))) == 0){
+            memcpy(&clientList[i],&cp, sizeof(struct sockaddr_storage));
+            // free(client);
             break;
         }
     }
@@ -77,7 +79,23 @@ void getPort(struct sockaddr_in *socket_addr) {
 void getAuthor(void) {
     printf("I, %s, have read and understood the course academic integrity policy.\n", "mohamma9");
 }
-void listClients(struct sockaddr_in* socket_list[]);
+void listClients(struct sockaddr_storage* clientList){
+    struct sockaddr_storage cp = {0};
+    int count = 0;
+    for(int i=0;i<30;i++){
+        char ip[16];
+        if (!( (memcmp(&clientList[i],&cp,sizeof(struct sockaddr_storage))) == 0)){
+            // printf("ClientList\n");
+            inet_ntop(AF_INET,&((struct sockaddr_in *)&clientList[i])->sin_addr,ip,sizeof(ip));
+            printf("Client %d: IP -> %s, ",(i+1),ip);
+            getPort((struct sockaddr_in *)&clientList[i]);
+            count++;
+        }
+    }
+    if(count == 0) {
+        printf("No clients connected\n");
+    }
+}
 
 void trim_newline (char *text)
 {

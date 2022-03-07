@@ -2,6 +2,7 @@ additional
 
 **/*client
 **/server
+**/server_*
 **/test*
 **/message*
 .vscode

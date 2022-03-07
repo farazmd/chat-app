@@ -9,14 +9,38 @@
 #include "common_methods.h"
 #include <sys/select.h>
 
+int server_socket, total_clients = 30, client_connections[30], client_socket, max_socket_descriptors,
+    addrlen, sd, valread;
+struct sockaddr_storage clientList[30];
+fd_set read_descriptors;
+char buf[1000];
+struct sockaddr_in server_address;
+
+void parse_user_input(char *s) {
+    printf("Inside parser\n");
+    char * token;
+    token = strsep(&s," ");
+    trim_newline(token);
+
+    if (strcmp(token,"IP")==0){
+        getIP();
+    }
+    else if(strcmp(token,"PORT")==0){
+        getPort(&server_address);
+    }
+    else if (strcmp(token,"AUTHOR")==0){
+        getAuthor();
+    }
+    else if (strcmp(token,"LIST")==0){
+        listClients(clientList);
+    }
+    else{
+        printf("Invalid Command\n");
+    }
+}
 
 void start_server() {
 
-    int server_socket, total_clients = 30, client_connections[30], client_socket, max_socket_descriptors,
-    addrlen, sd, valread;
-    fd_set read_descriptors;
-    char buf[1000],s[20];
-    struct sockaddr_in server_address;
     struct sockaddr_storage client_address;
 
     server_address.sin_family = AF_INET;
@@ -39,6 +63,8 @@ void start_server() {
     addrlen = sizeof(server_address);  
     puts("Waiting for connections ...");
 
+    initClientList(clientList);
+
     while(1) {
         FD_ZERO(&read_descriptors);  
      
@@ -47,6 +73,7 @@ void start_server() {
         FD_SET(STDIN_FILENO, &read_descriptors); 
         max_socket_descriptors = server_socket; 
         fflush (stdin);
+        printf(">");
 
         for ( int i = 0 ; i < total_clients ; i++)  
         {  
@@ -73,7 +100,7 @@ void start_server() {
                 perror("accept");  
                 exit(EXIT_FAILURE);  
             } 
-            addClient(&client_address);
+            addClient(&client_address,clientList);
             for (int i = 0; i < total_clients; i++)  
             {  
                 //if position is empty 
@@ -81,7 +108,12 @@ void start_server() {
                 {  
                     client_connections[i] = client_socket;  
                     printf("Adding to list of sockets as %d\n" , i);  
-                         
+                    unsigned char data[sizeof(clientList)];
+                    // data = (unsigned char)malloc(sizeof(clientList[0]));
+                    memcpy(&data,&clientList, sizeof(clientList));
+                    // printf("%u\n",data);
+                    // printf("hello\n");
+                    send(client_socket,data,sizeof(data),0);
                     break;  
                 }  
             }
@@ -102,14 +134,16 @@ void start_server() {
         else if (FD_ISSET(STDIN_FILENO, &read_descriptors)) {
             char msg[1024];
             memset(msg, 0, sizeof(msg));
-            read(STDIN_FILENO, msg, sizeof(msg));
-            printf(msg);
+            fgets (msg, 1024, stdin);
+            trim_newline(msg);
+            parse_user_input(msg);
+            
         }
         for (int i = 0; i < total_clients; i++)  
         {  
             sd = client_connections[i];  
                 
-            if (FD_ISSET( sd , &read_descriptors))  
+            if (FD_ISSET( sd , &read_descriptors) && sd !=0)  
             {  
                 //Check if it was for closing , and also read the 
                 //incoming message 
@@ -124,6 +158,7 @@ void start_server() {
                     //Close the socket and mark as 0 in list for reuse 
                     close( sd );  
                     client_connections[i] = 0;  
+                    removeClient(&client_address,clientList);
                 }  
                     
                 //Echo back the message that came in 
@@ -133,7 +168,7 @@ void start_server() {
                     //of the data read 
                     buf[valread] = '\0';  
                     // send(sd , buf , strlen(buf) , 0 );
-                    printf(buf);  
+                    // printf(buf);  
                 }  
             }  
         }  

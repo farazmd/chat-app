@@ -15,10 +15,11 @@
 
 #define PORT "9002" // the port client will be connecting to 
 
-#define MAXDATASIZE 100 // max number of bytes we can get at once 
+#define MAXDATASIZE 1024 // max number of bytes we can get at once 
 
 struct sockaddr_in * client;
 int clientSock, databytes,serverSock,temp,max_descriptors;
+struct sockaddr_storage clientList[30];
 int loggedIn = 0;
 struct timeval tv;
 fd_set read_descriptors;
@@ -37,6 +38,11 @@ void login(char* data) {
     hints.ai_socktype = SOCK_STREAM;
 
     clientSock = socket(AF_INET,SOCK_STREAM,0);
+    struct timeval tv;
+
+    tv.tv_sec = 3;  /* 30 Secs Timeout */
+
+    setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv,sizeof(struct timeval));
     // setsockopt(clientSock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int));
     if(clientSock < 0){
         perror("Client: socket");
@@ -68,9 +74,9 @@ void exitChat() {
     exit(0);
 }
 
-void send() {
+// void send() {
     
-}
+// }
 
 void parse_user_input(char *s) {
     char * token;
@@ -132,6 +138,8 @@ int main() {
     client_address.sin_addr.s_addr = INADDR_ANY;
     client = &client_address;
 
+    initClientList(clientList);
+
     // setsockopt(clientSock, SOL_SOCKET, SO_RCVLOWAT,&opt,sizeof(opt));
     // setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
     // fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
@@ -160,17 +168,40 @@ int main() {
         }
         else if(FD_ISSET(clientSock,&read_descriptors)){
             printf("Connected\n");
-            databytes = recv(clientSock, buf, MAXDATASIZE-1,MSG_PEEK);
-            printf("%d\n",databytes);
-            if(databytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
-
-                perror("recv");
-                continue;
+            int index = 0;
+            // Bytes read by the socket in one go
+            ssize_t bytesRead;
+            while(1){
+                printf("Before\n");
+                bytesRead = read(clientSock, buf + index, MAXDATASIZE);
+                printf("%u\n",bytesRead);
+                if(bytesRead < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
+                    perror("recv");
+                    break;
+                }
+                else if(bytesRead <= 0){
+                    printf("Received all the data\n");
+                    buf[index+1] = '\0';
+                    printf("%u",buf);
+                    break;
+                }
+                else {
+                    printf("Here\n");
+                    index += bytesRead;
+                    // printf("%u\n",index);
+                }
             }
+            // databytes = recv(clientSock, buf, MAXDATASIZE-1,MSG_PEEK);
+            // printf("%d\n",databytes);
+            // if(databytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
 
-            buf[databytes] = '\0';
+            //     perror("recv");
+            //     continue;
+            // }
 
-            printf("client: received '%s'\n",buf);
+            // buf[databytes] = '\0';
+
+            // printf("client: received '%s'\n",buf);
         }
         else {
             continue;
