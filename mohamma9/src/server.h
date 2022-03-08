@@ -110,7 +110,7 @@ void start_server() {
                     printf("Adding to list of sockets as %d\n" , i);  
                     unsigned char data[sizeof(clientList)];
                     // data = (unsigned char)malloc(sizeof(clientList[0]));
-                    memcpy(&data,&clientList, sizeof(clientList));
+                    memcpy(data,clientList, sizeof(clientList));
                     // printf("%u\n",data);
                     // printf("hello\n");
                     send(client_socket,data,sizeof(data),0);

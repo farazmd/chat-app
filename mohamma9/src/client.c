@@ -38,12 +38,13 @@ void login(char* data) {
     hints.ai_socktype = SOCK_STREAM;
 
     clientSock = socket(AF_INET,SOCK_STREAM,0);
-    struct timeval tv;
+    struct timeval tv = { 0, 500 };;
+    int true = 1;
 
-    tv.tv_sec = 3;  /* 30 Secs Timeout */
-
+    // tv.tv_sec = 1
+    // tv.tv;  /* 3 Secs Timeout */
+    setsockopt(clientSock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int));
     setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv,sizeof(struct timeval));
-    // setsockopt(clientSock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int));
     if(clientSock < 0){
         perror("Client: socket");
     }
@@ -56,6 +57,7 @@ void login(char* data) {
         perror("Client: server connect\n");
         printf("Error\n");
     }
+    initClientList(clientList);
     fflush(stdout);
     // inet_ntop(AF_INET, &server->ai_addr, serverIP, sizeof(serverIP));
     printf("Connected to server\n");
@@ -64,6 +66,7 @@ void login(char* data) {
 
 void logout() {
     close(clientSock);
+    // free(&clientList);
     loggedIn = 0;
     printf("Logged out from server\n");
 }
@@ -94,7 +97,7 @@ void parse_user_input(char *s) {
     }
     else if (strcmp(token,"LIST")==0){
         if(loggedIn)
-            printf("Lists connected users\n");
+            listClients(clientList);
         else
             printf("Login to the server.\n");
         // listClients();
@@ -132,13 +135,14 @@ void execute_command(char *command, char* data){
 int main() {
     char buf[1024];
     int true = 1;
-    tv.tv_sec = 3;
-    tv.tv_usec = 0;
+    int msg_count = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = 500;
     client_address.sin_family = AF_INET;
     client_address.sin_addr.s_addr = INADDR_ANY;
     client = &client_address;
 
-    initClientList(clientList);
+    // initClientList(clientList);
 
     // setsockopt(clientSock, SOL_SOCKET, SO_RCVLOWAT,&opt,sizeof(opt));
     // setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
@@ -168,27 +172,40 @@ int main() {
         }
         else if(FD_ISSET(clientSock,&read_descriptors)){
             printf("Connected\n");
+            setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv,sizeof(struct timeval));
             int index = 0;
             // Bytes read by the socket in one go
             ssize_t bytesRead;
             while(1){
                 printf("Before\n");
                 bytesRead = read(clientSock, buf + index, MAXDATASIZE);
-                printf("%u\n",bytesRead);
-                if(bytesRead < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
-                    perror("recv");
+                // printf("%u\n",bytesRead);
+                if(bytesRead <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
+                    // perror("recv");
+                    if(sizeof(buf)!=0) {
+                        // printf("Received all the data\n");
+                        buf[index+1] = '\0';
+                        printf("%u\n",sizeof(buf));
+                    }
+                    if( msg_count == 0){
+                        // printf("Copying to list");
+                        memcpy(&clientList,&buf,sizeof(clientList));
+                    }
+                    // printf("Done\n");
+                    msg_count += 1;
                     break;
                 }
-                else if(bytesRead <= 0){
-                    printf("Received all the data\n");
-                    buf[index+1] = '\0';
-                    printf("%u",buf);
-                    break;
-                }
+                // else if(bytesRead <= 0){
+                //     printf("Received all the data\n");
+                //     buf[index+1] = '\0';
+                //     printf("%u",sizeof(buf));
+                //     break;
+                // }
                 else {
-                    printf("Here\n");
-                    index += bytesRead;
-                    // printf("%u\n",index);
+                    // printf("Here\n");
+
+                    index = index + bytesRead;
+                    printf("%d\n",index);
                 }
             }
             // databytes = recv(clientSock, buf, MAXDATASIZE-1,MSG_PEEK);

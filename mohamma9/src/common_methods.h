@@ -9,6 +9,16 @@
 #include <sys/select.h>
 #include <arpa/inet.h>
 
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
 void initClientList(struct sockaddr_storage *clientList){
     struct sockaddr_storage cp = {0};
     for(int i=0;i<30;i++)
@@ -84,9 +94,11 @@ void listClients(struct sockaddr_storage* clientList){
     int count = 0;
     for(int i=0;i<30;i++){
         char ip[16];
+        char storeIP[16];
         if (!( (memcmp(&clientList[i],&cp,sizeof(struct sockaddr_storage))) == 0)){
             // printf("ClientList\n");
-            inet_ntop(AF_INET,&((struct sockaddr_in *)&clientList[i])->sin_addr,ip,sizeof(ip));
+            inet_ntop(AF_INET,&((struct sockaddr_in *)&clientList[i])->sin_addr,storeIP,sizeof(storeIP));
+            strcpy(ip,storeIP);
             printf("Client %d: IP -> %s, ",(i+1),ip);
             getPort((struct sockaddr_in *)&clientList[i]);
             count++;
@@ -104,14 +116,4 @@ void trim_newline (char *text)
       {
           text[len] = '\0';
       }
-}
-
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
