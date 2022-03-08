@@ -1,5 +1,8 @@
 additional
 
-**/client
+**/*client
 **/server
+**/server_*
+**/test*
+**/message*
 .vscode

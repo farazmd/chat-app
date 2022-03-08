@@ -26,6 +26,8 @@
 #include "../include/global.h"
 #include "../include/logger.h"
 
+#include "server.h"
+
 /**
  * main function
  *
@@ -36,12 +38,14 @@
 int main(int argc, char **argv)
 {
 	/*Init. Logger*/
-	cse4589_init_log(argv[2]);
+	// cse4589_init_log(argv[2]);
 
 	/*Clear LOGFILE*/
-	fclose(fopen(LOGFILE, "w"));
+	// fclose(fopen(LOGFILE, "w"));
 
 	/*Start Here*/
+
+	start_server();
 
 	return 0;
 }
