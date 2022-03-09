@@ -9,12 +9,13 @@
 #include "common_methods.h"
 #include <sys/select.h>
 
-int server_socket, total_clients = 30, client_connections[30], client_socket, max_socket_descriptors,
+int server_socket, total_clients = 30,client_connections[30], client_socket, max_socket_descriptors,
     addrlen, sd, valread;
 struct sockaddr_storage clientList[30];
 fd_set read_descriptors;
-char buf[1000];
+unsigned char * buf;
 struct sockaddr_in server_address;
+char clientData[30][sizeof(struct sockaddr_in)];
 
 void parse_user_input(char *s) {
     printf("Inside parser\n");
@@ -32,7 +33,7 @@ void parse_user_input(char *s) {
         getAuthor();
     }
     else if (strcmp(token,"LIST")==0){
-        listClients(clientList);
+        listClients(client_connections);
     }
     else{
         printf("Invalid Command\n");
@@ -47,10 +48,10 @@ void start_server() {
     server_address.sin_port = htons(9002);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
-    for (int i = 0; i < total_clients; i++)  
-    {  
-        client_connections[i] = 0;  
-    }
+    // for (int i = 0; i < total_clients; i++)  
+    // {  
+    //     client_connections[i] = 0;  
+    // }
 
     if((server_socket = socket(AF_INET,SOCK_STREAM,0)) == -1){
         printf("Server: Error");
@@ -63,7 +64,7 @@ void start_server() {
     addrlen = sizeof(server_address);  
     puts("Waiting for connections ...");
 
-    initClientList(clientList);
+    initClientList(client_connections);
 
     while(1) {
         FD_ZERO(&read_descriptors);  
@@ -100,23 +101,27 @@ void start_server() {
                 perror("accept");  
                 exit(EXIT_FAILURE);  
             } 
-            addClient(&client_address,clientList);
-            for (int i = 0; i < total_clients; i++)  
-            {  
-                //if position is empty 
-                if( client_connections[i] == 0 )  
-                {  
-                    client_connections[i] = client_socket;  
-                    printf("Adding to list of sockets as %d\n" , i);  
-                    unsigned char data[sizeof(clientList)];
-                    // data = (unsigned char)malloc(sizeof(clientList[0]));
-                    memcpy(data,clientList, sizeof(clientList));
-                    // printf("%u\n",data);
-                    // printf("hello\n");
-                    send(client_socket,data,sizeof(data),0);
-                    break;  
-                }  
-            }
+            addClient(&client_socket,client_connections);
+            // for (int i = 0; i < total_clients; i++)  
+            // {  
+            //     //if position is empty 
+            //     if( client_connections[i] == 0 )  
+            //     {  
+            //         client_connections[i] = client_socket;  
+            //         printf("Adding to list of sockets as %d\n" , i);  
+            //         unsigned char data[sizeof(clientList)];
+            //         // data = (unsigned char)malloc(sizeof(clientList[0]));
+            //         memcpy(data,clientList, sizeof(clientList));
+            //         // printf("%u\n",data);
+            //         // printf("hello\n");
+            //         send(client_socket,data,sizeof(data),0);
+            //         break;  
+            //     }  
+            // }
+            sendClientList(&client_socket,client_connections);
+            // unsigned char data[sizeof(client_connections)];
+            // memcpy(data,client_connections, sizeof(client_connections));
+            // send(client_socket,data,sizeof(data),0);
             // char buf[1024];
             // memset(buf, 0, sizeof(buf));
             // int lastBit;
@@ -157,8 +162,8 @@ void start_server() {
                         
                     //Close the socket and mark as 0 in list for reuse 
                     close( sd );  
-                    client_connections[i] = 0;  
-                    removeClient(&client_address,clientList);
+                    // client_connections[i] = 0;  
+                    removeClient(&client_connections[i],client_connections);
                 }  
                     
                 //Echo back the message that came in 

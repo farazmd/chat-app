@@ -19,8 +19,10 @@
 
 struct sockaddr_in * client;
 int clientSock, databytes,serverSock,temp,max_descriptors;
-struct sockaddr_storage clientList[30];
+int clientList[30];
+struct clientData listOfClients[30]={0};
 int loggedIn = 0;
+int msg_count = 0;
 struct timeval tv;
 fd_set read_descriptors;
 struct sockaddr_in client_address,sock_address;
@@ -68,6 +70,7 @@ void logout() {
     close(clientSock);
     // free(&clientList);
     loggedIn = 0;
+    msg_count = 0;
     printf("Logged out from server\n");
 }
 
@@ -97,7 +100,8 @@ void parse_user_input(char *s) {
     }
     else if (strcmp(token,"LIST")==0){
         if(loggedIn)
-            listClients(clientList);
+            // listClients(clientList);
+            listClientsForClient(listOfClients);
         else
             printf("Login to the server.\n");
         // listClients();
@@ -177,7 +181,7 @@ int main() {
             // Bytes read by the socket in one go
             ssize_t bytesRead;
             while(1){
-                printf("Before\n");
+                // printf("Before\n");
                 bytesRead = read(clientSock, buf + index, MAXDATASIZE);
                 // printf("%u\n",bytesRead);
                 if(bytesRead <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
@@ -185,11 +189,13 @@ int main() {
                     if(sizeof(buf)!=0) {
                         // printf("Received all the data\n");
                         buf[index+1] = '\0';
-                        printf("%u\n",sizeof(buf));
+                        // printf("%u\n",sizeof(buf));
                     }
                     if( msg_count == 0){
+                        // uint32_t data[30];
                         // printf("Copying to list");
-                        memcpy(&clientList,&buf,sizeof(clientList));
+                        // memcpy(data,buf,sizeof(data));
+                        receiveClientList(buf,listOfClients);
                     }
                     // printf("Done\n");
                     msg_count += 1;
