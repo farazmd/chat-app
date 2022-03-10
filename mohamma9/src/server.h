@@ -13,7 +13,7 @@ int server_socket, total_clients = 30,client_connections[30], client_socket, max
     addrlen, sd, valread;
 struct sockaddr_storage clientList[30];
 fd_set read_descriptors;
-unsigned char * buf;
+char buf[1024];
 struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 
@@ -37,6 +37,20 @@ void parse_user_input(char *s) {
     }
     else{
         printf("Invalid Command\n");
+    }
+}
+
+void handleRefresh(int *client){
+    sendClientList(client,client_connections);
+}
+
+void parse_client_data(int *client,char *s){
+    char * token;
+    token = strsep(&s," ");
+    trim_newline(token);
+
+    if(strcmp(token,"REFRESH")==0){
+        handleRefresh(client);
     }
 }
 
@@ -144,14 +158,15 @@ void start_server() {
             parse_user_input(msg);
             
         }
-        for (int i = 0; i < total_clients; i++)  
+        for (int i = 0; i < 30; i++)  
         {  
             sd = client_connections[i];  
                 
-            if (FD_ISSET( sd , &read_descriptors) && sd !=0)  
+            if (FD_ISSET( sd , &read_descriptors))  
             {  
                 //Check if it was for closing , and also read the 
                 //incoming message 
+                printf("Client selected\n");
                 if ((valread = read( sd , buf, 1024)) == 0)  
                 {  
                     //Somebody disconnected , get his details and print 
@@ -168,12 +183,13 @@ void start_server() {
                     
                 //Echo back the message that came in 
                 else 
-                {  
+                {   printf("%d\n",valread);
                     //set the string terminating NULL byte on the end 
                     //of the data read 
-                    buf[valread] = '\0';  
+                    buf[valread+1] = '\0';  
                     // send(sd , buf , strlen(buf) , 0 );
-                    // printf(buf);  
+                    printf("%s\n",buf);  
+                    parse_client_data(&sd,buf);
                 }  
             }  
         }  

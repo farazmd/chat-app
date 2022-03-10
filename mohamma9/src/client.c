@@ -80,9 +80,10 @@ void exitChat() {
     exit(0);
 }
 
-// void send() {
-    
-// }
+void refreshClients(char * msg) {
+    printf("%s\n",msg);
+    send(clientSock,msg,sizeof(msg),0);
+}
 
 void parse_user_input(char *s) {
     char * token;
@@ -105,6 +106,12 @@ void parse_user_input(char *s) {
         else
             printf("Login to the server.\n");
         // listClients();
+    }
+    else if(strcmp(token,"REFRESH")==0){
+        if(loggedIn)
+            refreshClients(token);
+        else
+            printf("Login to the server.\n");
     }
     else if (strcmp(token,"LOGIN")==0){
         login(s);
