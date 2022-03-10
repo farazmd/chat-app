@@ -118,6 +118,8 @@ void sendClientList(int *client,int *clientList){
     struct clientData data[30];
     char ip[16];
     unsigned char * char_data;
+    unsigned char * prepend = (char *)"LIST-";
+    unsigned char dataToSend[sizeof(prepend) + sizeof(data)];
 
     for(int i=0;i<30;i++){
         // data[i] = clientList[i];
@@ -136,8 +138,10 @@ void sendClientList(int *client,int *clientList){
             data[i].port = 0;
         }
     }
+    strcpy(dataToSend,prepend);
     char_data = (char *)&data;
-    send(*client,char_data, sizeof(data),0);
+    memcpy(dataToSend+strlen(prepend),char_data,sizeof(data));
+    send(*client,dataToSend, sizeof(dataToSend),0);
 }
 
 

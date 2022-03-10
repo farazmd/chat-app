@@ -130,6 +130,18 @@ void parse_user_input(char *s) {
     }
 }
 
+void parser_server_data(char * msg){
+    printf("%s\n",msg);
+    char * token;
+    token = strsep(&msg,"-");
+    trim_newline(token);
+    printf("%s,%s\n",token,msg);
+
+    if(strcmp(token,"LIST")==0){
+        receiveClientList(msg,listOfClients);
+    }
+}
+
 void execute_command(char *command, char* data){
     printf("Inside execute_command");
     if (strcmp(command,"IP")==0){
@@ -197,13 +209,14 @@ int main() {
                         // printf("Received all the data\n");
                         buf[index+1] = '\0';
                         // printf("%u\n",sizeof(buf));
+                        parser_server_data(buf);
                     }
-                    if( msg_count == 0){
-                        // uint32_t data[30];
-                        // printf("Copying to list");
-                        // memcpy(data,buf,sizeof(data));
-                        receiveClientList(buf,listOfClients);
-                    }
+                    // if( msg_count == 0){
+                    //     // uint32_t data[30];
+                    //     // printf("Copying to list");
+                    //     // memcpy(data,buf,sizeof(data));
+                    //     receiveClientList(buf,listOfClients);
+                    // }
                     // printf("Done\n");
                     msg_count += 1;
                     break;

@@ -44,6 +44,10 @@ void handleRefresh(int *client){
     sendClientList(client,client_connections);
 }
 
+void handleSendData(int *client,char *msg){
+
+}
+
 void parse_client_data(int *client,char *s){
     char * token;
     token = strsep(&s," ");
@@ -162,11 +166,10 @@ void start_server() {
         {  
             sd = client_connections[i];  
                 
-            if (FD_ISSET( sd , &read_descriptors))  
+            if (FD_ISSET( sd , &read_descriptors) && sd!=0)  
             {  
                 //Check if it was for closing , and also read the 
                 //incoming message 
-                printf("Client selected\n");
                 if ((valread = read( sd , buf, 1024)) == 0)  
                 {  
                     //Somebody disconnected , get his details and print 
@@ -180,15 +183,11 @@ void start_server() {
                     // client_connections[i] = 0;  
                     removeClient(&client_connections[i],client_connections);
                 }  
-                    
-                //Echo back the message that came in 
                 else 
-                {   printf("%d\n",valread);
+                {   
                     //set the string terminating NULL byte on the end 
                     //of the data read 
-                    buf[valread+1] = '\0';  
-                    // send(sd , buf , strlen(buf) , 0 );
-                    printf("%s\n",buf);  
+                    buf[valread+1] = '\0';    
                     parse_client_data(&sd,buf);
                 }  
             }  
