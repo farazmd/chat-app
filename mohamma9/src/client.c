@@ -81,8 +81,19 @@ void exitChat() {
 }
 
 void refreshClients(char * msg) {
-    printf("%s\n",msg);
+    // unsigned char data[sizeof(msg)+1];
+    // trim_newline(msg);
+    // strcpy(data,msg);
+    // memcpy(data+strlen(msg)," ",sizeof(" "));
     send(clientSock,msg,sizeof(msg),0);
+}
+
+void handleRevieveData(char * msg){
+    char * token;
+    token = strsep(&msg,"-");
+    trim_newline(token);
+
+    printf("msg from: %s\n[msg]:%s\n",token,msg);
 }
 
 void parse_user_input(char *s) {
@@ -134,14 +145,15 @@ void parse_user_input(char *s) {
 }
 
 void parser_server_data(char * msg){
-    printf("%s\n",msg);
     char * token;
-    token = strsep(&msg,"-");
+    token = strsep(&msg," ");
     trim_newline(token);
-    printf("%s,%s\n",token,msg);
 
     if(strcmp(token,"LIST")==0){
         receiveClientList(msg,listOfClients);
+    }
+    else if(strcmp(token,"SEND")==0){
+        handleRevieveData(msg);
     }
 }
 

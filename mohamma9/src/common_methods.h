@@ -11,7 +11,7 @@
 #include <netdb.h>
 
 struct clientData {
-    char ip[16];
+    char ip[20];
     int port;
 };
 
@@ -116,9 +116,9 @@ void listClients(int * clientList){
 
 void sendClientList(int *client,int *clientList){
     struct clientData data[30];
-    char ip[16];
+    char ip[20];
     unsigned char * char_data;
-    unsigned char * prepend = (char *)"LIST-";
+    unsigned char * prepend = (char *)"LIST ";
     unsigned char dataToSend[sizeof(prepend) + sizeof(data)];
 
     for(int i=0;i<30;i++){
@@ -129,12 +129,12 @@ void sendClientList(int *client,int *clientList){
             getpeername(clientList[i],(struct sockaddr *)&addr,&addr_len);
             memcpy(&clientInfo,&addr,addr_len);
             memcpy(data[i].ip,inet_ntoa(clientInfo.sin_addr),sizeof(data[i].ip));
-            data[i].ip[16] = '\0';
+            data[i].ip[20] = '\0';
             data[i].port = clientInfo.sin_port;
         }
         else {
             memcpy(data[i].ip,"",sizeof(data[i].ip));
-            data[i].ip[16] = '\0';
+            data[i].ip[20] = '\0';
             data[i].port = 0;
         }
     }
@@ -182,16 +182,20 @@ void sendMessage(int *fd,char * msg){
     unsigned char * data = msg;
     unsigned char * prepend = (char *)"SEND ";
     unsigned char * separator = (char *)"-";
-    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg) +5 ];
+    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg) +5];
 
-    // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
+    printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
 
     strcpy(dataToSend,prepend);
-    memcpy(dataToSend+strlen(prepend),ip,sizeof(ip)+sizeof(prepend));
-    memcpy(dataToSend+strlen(prepend)+sizeof(ip) + 1,separator,sizeof(ip)+sizeof(prepend)+sizeof(separator));
-    // printf("%s,%d\n",msg,strlen(msg));
+    strcat(dataToSend,ip);
+    strcat(dataToSend,separator);
+    strcat(dataToSend,msg);
+    // memcpy(dataToSend+strlen(prepend),ip,sizeof(ip));
+    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
+    // memcpy(dataToSend+strlen(prepend)+sizeof(ip),separator,sizeof(separator));
+    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
     // printf("%s,%d\n",dataToSend,strlen(dataToSend));
-    memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + 1 +strlen(separator), data, sizeof(data)+sizeof(ip)+sizeof(prepend)+sizeof(separator));
+    // memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + strlen(separator), data, sizeof(data));
     printf("%s,%d\n",dataToSend,strlen(dataToSend));
     // printf("%s,%d\n",msg,strlen(msg));
     send(*fd,dataToSend, sizeof(dataToSend),0);

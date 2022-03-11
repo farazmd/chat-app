@@ -18,7 +18,6 @@ struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 
 void parse_user_input(char *s) {
-    printf("Inside parser\n");
     char * token;
     token = strsep(&s," ");
     trim_newline(token);
@@ -52,21 +51,21 @@ void handleSendData(int *client,char *msg){
     for(int i=0;i<30;i++){
         struct sockaddr_in addr,clientInfo;
         socklen_t addr_len = sizeof(addr);
-        char ip[16];
+        char ip[20];
         if(client_connections[i]!=0){
             getpeername(client_connections[i],(struct sockaddr *)&addr,&addr_len);
             memcpy(&clientInfo,&addr,addr_len);
             memcpy(ip,inet_ntoa(clientInfo.sin_addr),sizeof(ip));
-            ip[16] = '\0';
+            ip[20] = '\0';
             if(strcmp(ip,token)==0){
                 struct sockaddr_in senderAddr,senderInfo;
                 socklen_t senderAddr_len = sizeof(senderAddr);
-                char senderIp[16];
+                char senderIp[20];
                 unsigned char * messageData = msg;
                 getpeername(*client,(struct sockaddr *)&senderAddr,&senderAddr_len);
                 memcpy(&senderInfo,&senderAddr,senderAddr_len);
                 memcpy(senderIp,inet_ntoa(senderInfo.sin_addr),sizeof(ip));
-                senderIp[16] = '\0';
+                senderIp[20] = '\0';
                 unsigned char * separator = (char *)" ";
                 unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
                 printf("%d\n",sizeof(data));
@@ -85,9 +84,9 @@ void handleSendData(int *client,char *msg){
 
 void parse_client_data(int *client,char *s){
     char * token;
+    printf("%s\n",s);
     token = strsep(&s," ");
     trim_newline(token);
-
     if(strcmp(token,"REFRESH")==0){
         handleRefresh(client);
     }
