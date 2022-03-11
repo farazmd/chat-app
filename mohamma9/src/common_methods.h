@@ -174,3 +174,25 @@ void trim_newline (char *text)
           text[len] = '\0';
       }
 }
+
+void sendMessage(int *fd,char * msg){
+    unsigned char * ip = strsep(&msg," ");
+    trim_newline(ip);
+    trim_newline(msg);
+    unsigned char * data = msg;
+    unsigned char * prepend = (char *)"SEND ";
+    unsigned char * separator = (char *)"-";
+    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg) +5 ];
+
+    // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
+
+    strcpy(dataToSend,prepend);
+    memcpy(dataToSend+strlen(prepend),ip,sizeof(ip)+sizeof(prepend));
+    memcpy(dataToSend+strlen(prepend)+sizeof(ip) + 1,separator,sizeof(ip)+sizeof(prepend)+sizeof(separator));
+    // printf("%s,%d\n",msg,strlen(msg));
+    // printf("%s,%d\n",dataToSend,strlen(dataToSend));
+    memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + 1 +strlen(separator), data, sizeof(data)+sizeof(ip)+sizeof(prepend)+sizeof(separator));
+    printf("%s,%d\n",dataToSend,strlen(dataToSend));
+    // printf("%s,%d\n",msg,strlen(msg));
+    send(*fd,dataToSend, sizeof(dataToSend),0);
+}

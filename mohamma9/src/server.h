@@ -45,7 +45,42 @@ void handleRefresh(int *client){
 }
 
 void handleSendData(int *client,char *msg){
-
+    char * token;
+    token = strsep(&msg,"-");
+    trim_newline(token);
+    trim_newline(msg);
+    for(int i=0;i<30;i++){
+        struct sockaddr_in addr,clientInfo;
+        socklen_t addr_len = sizeof(addr);
+        char ip[16];
+        if(client_connections[i]!=0){
+            getpeername(client_connections[i],(struct sockaddr *)&addr,&addr_len);
+            memcpy(&clientInfo,&addr,addr_len);
+            memcpy(ip,inet_ntoa(clientInfo.sin_addr),sizeof(ip));
+            ip[16] = '\0';
+            if(strcmp(ip,token)==0){
+                struct sockaddr_in senderAddr,senderInfo;
+                socklen_t senderAddr_len = sizeof(senderAddr);
+                char senderIp[16];
+                unsigned char * messageData = msg;
+                getpeername(*client,(struct sockaddr *)&senderAddr,&senderAddr_len);
+                memcpy(&senderInfo,&senderAddr,senderAddr_len);
+                memcpy(senderIp,inet_ntoa(senderInfo.sin_addr),sizeof(ip));
+                senderIp[16] = '\0';
+                unsigned char * separator = (char *)" ";
+                unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
+                printf("%d\n",sizeof(data));
+                strcpy(data,senderIp);
+                printf("%s,%d\n",data,strlen(data));
+                memcpy(data + strlen(senderIp) , separator,sizeof(separator)+ sizeof(senderIp));
+                printf("%s,%d\n",data,strlen(data));
+                memcpy(data + strlen(senderIp) + strlen(separator), messageData,sizeof(separator)+ sizeof(senderIp)+ sizeof(messageData));
+                printf("%s,%d\n",data,strlen(data));
+                printf("%s,%d\n",messageData,strlen(messageData));
+                sendMessage(&client_connections[i],data);
+            }
+        }
+    }
 }
 
 void parse_client_data(int *client,char *s){
@@ -55,6 +90,9 @@ void parse_client_data(int *client,char *s){
 
     if(strcmp(token,"REFRESH")==0){
         handleRefresh(client);
+    }
+    else if(strcmp(token,"SEND")==0){
+        handleSendData(client,s);
     }
 }
 

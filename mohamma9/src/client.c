@@ -113,6 +113,9 @@ void parse_user_input(char *s) {
         else
             printf("Login to the server.\n");
     }
+    else if(strcmp(token,"SEND")==0){
+        sendMessage(&clientSock,s);
+    }
     else if (strcmp(token,"LOGIN")==0){
         login(s);
     }
