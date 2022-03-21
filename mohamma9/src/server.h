@@ -17,6 +17,69 @@ char buf[1024];
 struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 
+struct clientStats {
+    char ip[20];
+    int port;
+    int message_sent_count;
+    int message_receive_count;
+    // char message_queue[][1024];
+};
+
+struct clientStats clientStatsList[30] = {0};
+
+void updateClientStats(int *client,int sent,int received){
+    struct sockaddr_in addr,clientInfo;
+    socklen_t addr_len = sizeof(addr);
+    char ip[20];
+    getpeername(*client,(struct sockaddr *)&addr,&addr_len);
+    memcpy(&clientInfo,&addr,addr_len);
+    memcpy(ip,inet_ntoa(clientInfo.sin_addr),sizeof(ip));
+    ip[20] = '\0';
+    int clientFound = 0;
+    for(int i=0; i<30;i++){
+        if(strcmp(ip,clientStatsList[i].ip)==0){
+            // printf("Found Client\n");
+            if(sent == 1){
+                clientStatsList[i].message_sent_count +=1;
+            }
+            if(received == 1){
+                clientStatsList[i].message_receive_count +=1;
+            }
+            clientFound = 1;
+        }
+    }
+    if(clientFound == 0){
+        // puts("Did not find client");
+        for(int i=0; i<30;i++){
+            if(strlen(clientStatsList[i].ip)==0){
+                // puts("Adding client here");
+                strcpy(clientStatsList[i].ip,ip);
+                clientStatsList[i].port = ntohs(clientInfo.sin_port);
+                clientStatsList[i].message_sent_count = 0;
+                clientStatsList[i].message_receive_count = 0;
+                break;
+            }
+        }
+    }
+}
+
+void showStats(){
+    for(int i=0; i<30;i++){
+        struct sockaddr_in addr,clientInfo;
+        socklen_t addr_len = sizeof(addr);
+        char ip[20];
+        if(client_connections[i]!=0){
+            getpeername(client_connections[i],(struct sockaddr *)&addr,&addr_len);
+            memcpy(&clientInfo,&addr,addr_len);
+            memcpy(ip,inet_ntoa(clientInfo.sin_addr),sizeof(ip));
+            if(strcmp(ip,clientStatsList[i].ip)==0){
+                printf("Client IP: %s, Messages Sent: %d, Messages Received: %d\n",clientStatsList[i].ip,
+                clientStatsList[i].message_sent_count,clientStatsList[i].message_receive_count);
+            }
+        }
+    }
+}
+
 void parse_user_input(char *s) {
     char * token;
     token = strsep(&s," ");
@@ -34,6 +97,9 @@ void parse_user_input(char *s) {
     else if (strcmp(token,"LIST")==0){
         listClients(client_connections);
     }
+    else if (strcmp(token,"STATISTICS")==0){
+        showStats();
+    }
     else{
         printf("Invalid Command\n");
     }
@@ -48,6 +114,7 @@ void handleSendData(int *client,char *msg){
     token = strsep(&msg,"-");
     trim_newline(token);
     trim_newline(msg);
+    updateClientStats(client,1,0);
     for(int i=0;i<30;i++){
         struct sockaddr_in addr,clientInfo;
         socklen_t addr_len = sizeof(addr);
@@ -68,15 +135,16 @@ void handleSendData(int *client,char *msg){
                 senderIp[20] = '\0';
                 unsigned char * separator = (char *)" ";
                 unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
-                printf("%d\n",sizeof(data));
+                // printf("%d\n",sizeof(data));
                 strcpy(data,senderIp);
-                printf("%s,%d\n",data,strlen(data));
+                // printf("%s,%d\n",data,strlen(data));
                 memcpy(data + strlen(senderIp) , separator,sizeof(separator)+ sizeof(senderIp));
-                printf("%s,%d\n",data,strlen(data));
+                // printf("%s,%d\n",data,strlen(data));
                 memcpy(data + strlen(senderIp) + strlen(separator), messageData,sizeof(separator)+ sizeof(senderIp)+ sizeof(messageData));
-                printf("%s,%d\n",data,strlen(data));
-                printf("%s,%d\n",messageData,strlen(messageData));
+                // printf("%s,%d\n",data,strlen(data));
+                // printf("%s,%d\n",messageData,strlen(messageData));
                 sendMessage(&client_connections[i],data);
+                updateClientStats(&client_connections[i],0,1);
             }
         }
     }
@@ -95,12 +163,12 @@ void parse_client_data(int *client,char *s){
     }
 }
 
-void start_server() {
+void start_server(int port) {
 
     struct sockaddr_storage client_address;
 
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(9002);
+    server_address.sin_port = htons(port);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // for (int i = 0; i < total_clients; i++)  
@@ -129,7 +197,7 @@ void start_server() {
         FD_SET(STDIN_FILENO, &read_descriptors); 
         max_socket_descriptors = server_socket; 
         fflush (stdin);
-        printf(">");
+        puts(">");
 
         for ( int i = 0 ; i < total_clients ; i++)  
         {  
@@ -157,6 +225,7 @@ void start_server() {
                 exit(EXIT_FAILURE);  
             } 
             addClient(&client_socket,client_connections);
+            updateClientStats(&client_socket,0,0);
             // for (int i = 0; i < total_clients; i++)  
             // {  
             //     //if position is empty 

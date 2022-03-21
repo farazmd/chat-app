@@ -1,3 +1,5 @@
+#ifndef HEADER_FILE
+#define HEADER_FILE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -105,7 +107,7 @@ void listClients(int * clientList){
         if(clientList[i] !=0){
             getpeername(clientList[i],(struct sockaddr *)&addr, &addr_len);
             printf("Peer IP address: %s\n", inet_ntoa(addr.sin_addr));
-            printf("Peer port      : %d\n", ntohs(addr.sin_port));
+            printf("Peer port      : %u\n", ntohs(addr.sin_port));
             count++;
         }
     }
@@ -162,7 +164,7 @@ void listClientsForClient(struct clientData *data){
     for(int  i=0;i<30;i++){
         // printf("%d\n",strlen(data[i].ip));
         if(strlen(data[i].ip)>0 && data[i].port!=0)
-            printf("IP: %s PORT: %d\n",data[i].ip,data[i].port);
+            printf("IP: %s PORT: %u\n",data[i].ip,data[i].port);
     }
 }
 
@@ -200,3 +202,4 @@ void sendMessage(int *fd,char * msg){
     // printf("%s,%d\n",msg,strlen(msg));
     send(*fd,dataToSend, sizeof(dataToSend),0);
 }
+#endif

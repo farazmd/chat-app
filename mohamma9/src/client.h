@@ -19,7 +19,7 @@
 
 struct sockaddr_in * client;
 int clientSock, databytes,serverSock,temp,max_descriptors;
-int clientList[30];
+int clientListFD[30];
 struct clientData listOfClients[30]={0};
 int loggedIn = 0;
 int msg_count = 0;
@@ -28,7 +28,7 @@ fd_set read_descriptors;
 struct sockaddr_in client_address,sock_address;
 struct addrinfo *server,hints;
 
-void login(char* data) {
+int login(char* data) {
     char serverIP[16];
     char *ip,*port;
     memset(&hints, 0, sizeof hints);
@@ -41,11 +41,11 @@ void login(char* data) {
 
     clientSock = socket(AF_INET,SOCK_STREAM,0);
     struct timeval tv = { 0, 500 };;
-    int true = 1;
+    int yes = 1;
 
     // tv.tv_sec = 1
     // tv.tv;  /* 3 Secs Timeout */
-    setsockopt(clientSock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int));
+    setsockopt(clientSock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int));
     setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv,sizeof(struct timeval));
     if(clientSock < 0){
         perror("Client: socket");
@@ -53,17 +53,23 @@ void login(char* data) {
 
     if ((temp = getaddrinfo(ip, port, &hints, &server)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(temp));
-        // return 1;
+        close(clientSock);
+        return 1 ;
     }
-    if(connect(clientSock, server->ai_addr, server->ai_addrlen)<0){
-        perror("Client: server connect\n");
-        printf("Error\n");
+    bind(clientSock, (struct sockaddr*) &client_address, sizeof(client_address));
+    if((temp = connect(clientSock, server->ai_addr, server->ai_addrlen))<0){
+        // perror("Client: server connect\n");
+        // printf("Error\n");
+        fprintf(stderr, "Server Connect: %s\n", gai_strerror(temp));
+        close(clientSock);
+        return 1;
     }
-    initClientList(clientList);
+    initClientList(clientListFD);
     fflush(stdout);
     // inet_ntop(AF_INET, &server->ai_addr, serverIP, sizeof(serverIP));
     printf("Connected to server\n");
     loggedIn = 1;
+    return 0;
 }
 
 void logout() {
@@ -96,7 +102,7 @@ void handleRevieveData(char * msg){
     printf("msg from: %s\n[msg]:%s\n",token,msg);
 }
 
-void parse_user_input(char *s) {
+void parse_client_user_input(char *s) {
     char * token;
     token = strsep(&s," ");
     trim_newline(token);
@@ -170,16 +176,17 @@ void execute_command(char *command, char* data){
     }
 }
 
-int main() {
+void start_client (int port) {
     char buf[1024];
-    int true = 1;
+    int yes = 1;
     int msg_count = 0;
     tv.tv_sec = 0;
     tv.tv_usec = 500;
     client_address.sin_family = AF_INET;
     client_address.sin_addr.s_addr = INADDR_ANY;
+    client_address.sin_port = htons(port);
     client = &client_address;
-
+    puts("Client started");
     // initClientList(clientList);
 
     // setsockopt(clientSock, SOL_SOCKET, SO_RCVLOWAT,&opt,sizeof(opt));
@@ -198,7 +205,7 @@ int main() {
             max_descriptors = STDIN_FILENO;
         }
         fflush (stdin);
-        printf(">");
+        puts(">");
         select(max_descriptors + 1,&read_descriptors, NULL, NULL, NULL);
 
         if(FD_ISSET(STDIN_FILENO,&read_descriptors)) {
@@ -206,10 +213,9 @@ int main() {
             memset(msg, 0, sizeof(msg));
             fgets (msg, 1024, stdin);
             trim_newline(msg);
-            parse_user_input(msg);
+            parse_client_user_input(msg);
         }
         else if(FD_ISSET(clientSock,&read_descriptors)){
-            printf("Connected\n");
             setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv,sizeof(struct timeval));
             int index = 0;
             // Bytes read by the socket in one go
