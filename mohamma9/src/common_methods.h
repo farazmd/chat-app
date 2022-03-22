@@ -159,6 +159,9 @@ void listClients(int *clientList)
             else if(strcmp(ip,"128.205.36.8")==0){
                 strcpy(host,"timberlake.cse.buffalo.edu");
             }
+            else if(strcmp(ip,"128.205.36.36")==0){
+                strcpy(host,"underground.cse.buffalo.edu");
+            }
             else {
                 strcpy(host,"docker");
             }
@@ -247,6 +250,9 @@ void listClientsForClient(struct clientData *data){
             }
             else if(strcmp(sortedData[i].ip,"128.205.36.8")==0){
                 strcpy(host,"timberlake.cse.buffalo.edu");
+            }
+            else if(strcmp(sortedData[i].ip,"128.205.36.36")==0){
+                strcpy(host,"underground.cse.buffalo.edu");
             }
             else {
                 strcpy(host,"docker");

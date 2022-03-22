@@ -127,13 +127,13 @@ void parse_client_user_input(char *s)
     {
         cse4589_print_and_log("[%s:SUCCESS]\n", "PORT");
         getPort(client);
-        cse4589_print_and_log("[%s:END]\n", "IP");
+        cse4589_print_and_log("[%s:END]\n", "PORT");
     }
     else if (strcmp(token, "AUTHOR") == 0)
     {
         cse4589_print_and_log("[%s:SUCCESS]\n", "AUTHOR");
         getAuthor();
-        cse4589_print_and_log("[%s:END]\n", "IP");
+        cse4589_print_and_log("[%s:END]\n", "AUTHOR");
     }
     else if (strcmp(token, "LIST") == 0)
     {
@@ -169,11 +169,15 @@ void parse_client_user_input(char *s)
     }
     else if (strcmp(token, "SEND") == 0)
     {
+        cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
         sendMessage(&clientSock, s);
+        cse4589_print_and_log("[%s:END]\n", "SEND");
     }
     else if (strcmp(token, "BROADCAST") == 0)
     {
+        cse4589_print_and_log("[%s:SUCCESS]\n", "BROADCAST");
         Broadcast(s);
+        cse4589_print_and_log("[%s:END]\n", "BROADCAST");
     }
     else if (strcmp(token, "LOGIN") == 0)
     {

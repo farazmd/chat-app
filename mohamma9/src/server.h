@@ -221,7 +221,7 @@ void showStats()
             if (strcmp(ip, clientStatsList[i].ip) == 0)
             {
                 cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", (i + 1), clientStatsList[i].ip,
-                                      clientStatsList[i].message_sent_count, clientStatsList[i].message_receive_count, "Online");
+                                      clientStatsList[i].message_sent_count, clientStatsList[i].message_receive_count, "logged-in");
                 // printf("Client IP: %s, Messages Sent: %d, Messages Received: %d\n",clientStatsList[i].ip,
                 // clientStatsList[i].message_sent_count,clientStatsList[i].message_receive_count);
             }
@@ -229,7 +229,7 @@ void showStats()
         else if (strlen(clientStatsList[i].ip) != 0)
         {
             cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", (i + 1), clientStatsList[i].ip,
-                                  clientStatsList[i].message_sent_count, clientStatsList[i].message_receive_count, "Offline");
+                                  clientStatsList[i].message_sent_count, clientStatsList[i].message_receive_count, "logged-out");
         }
     }
 }
@@ -321,9 +321,9 @@ void handleSendData(int *client, char *msg)
                 memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
                 // printf("%s,%d\n",data,strlen(data));
                 // printf("%s,%d\n",messageData,strlen(messageData));
-                cse4589_print_and_log("[%s:SUCCESS]\n","REPLAYED");
+                cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
                 cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, ip, msg);
-                cse4589_print_and_log("[%s:END]\n","REPLAYED");
+                cse4589_print_and_log("[%s:END]\n","RELAYED");
                 sendMessage(&client_connections[i],data);
                 updateClientStats(client,1,0);
                 updateClientStats(&client_connections[i],0,1);
@@ -581,6 +581,9 @@ void handleBroadcast(int *client, char *msg)
             memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
             // printf("%s,%d\n", data, strlen(data));
             // printf("%s,%d\n", messageData, strlen(messageData));
+            cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
+            cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, "255.255.255.255", msg);
+            cse4589_print_and_log("[%s:END]\n","RELAYED");
             sendMessage(&client_connections[i], data);
         }
     }
