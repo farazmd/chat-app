@@ -8,54 +8,63 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+// #include "server.h"
 
 #include "common_methods.h"
 
 #include <arpa/inet.h>
 
-#define PORT "9002" // the port client will be connecting to 
+#define PORT "9002" // the port client will be connecting to
 
-#define MAXDATASIZE 1024 // max number of bytes we can get at once 
+#define MAXDATASIZE 1024 // max number of bytes we can get at once
 
-struct sockaddr_in * client;
-int clientSock, databytes,serverSock,temp,max_descriptors;
+#define SERVERPORT 4950 // The port used for broadcasting
+
+struct sockaddr_in *client;
+int clientSock, databytes, serverSock, temp, max_descriptors;
 int clientList[30];
-struct clientData listOfClients[30]={0};
+struct clientData listOfClients[30] = {0};
 int loggedIn = 0;
 int msg_count = 0;
 struct timeval tv;
 fd_set read_descriptors;
-struct sockaddr_in client_address,sock_address;
-struct addrinfo *server,hints;
+struct sockaddr_in client_address, sock_address;
+struct addrinfo *server, hints;
 
-void login(char* data) {
+void Broadcast(char *msg);
+
+void login(char *data)
+{
     char serverIP[16];
-    char *ip,*port;
+    char *ip, *port;
     memset(&hints, 0, sizeof hints);
-    ip = strsep(&data," ");
+    ip = strsep(&data, " ");
     port = data;
     trim_newline(ip);
     trim_newline(port);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
-    clientSock = socket(AF_INET,SOCK_STREAM,0);
-    struct timeval tv = { 0, 500 };;
+    clientSock = socket(AF_INET, SOCK_STREAM, 0);
+    struct timeval tv = {0, 500};
     int true = 1;
 
     // tv.tv_sec = 1
     // tv.tv;  /* 3 Secs Timeout */
-    setsockopt(clientSock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int));
-    setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv,sizeof(struct timeval));
-    if(clientSock < 0){
+    setsockopt(clientSock, SOL_SOCKET, SO_REUSEADDR, &true, sizeof(int));
+    setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
+    if (clientSock < 0)
+    {
         perror("Client: socket");
     }
 
-    if ((temp = getaddrinfo(ip, port, &hints, &server)) != 0) {
+    if ((temp = getaddrinfo(ip, port, &hints, &server)) != 0)
+    {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(temp));
         // return 1;
     }
-    if(connect(clientSock, server->ai_addr, server->ai_addrlen)<0){
+    if (connect(clientSock, server->ai_addr, server->ai_addrlen) < 0)
+    {
         perror("Client: server connect\n");
         printf("Error\n");
     }
@@ -66,7 +75,8 @@ void login(char* data) {
     loggedIn = 1;
 }
 
-void logout() {
+void logout()
+{
     close(clientSock);
     // free(&clientList);
     loggedIn = 0;
@@ -74,103 +84,130 @@ void logout() {
     printf("Logged out from server\n");
 }
 
-void exitChat() {
-    if(loggedIn)
+void exitChat()
+{
+    if (loggedIn)
         logout();
     exit(0);
 }
 
-void refreshClients(char * msg) {
+void refreshClients(char *msg)
+{
     // unsigned char data[sizeof(msg)+1];
     // trim_newline(msg);
     // strcpy(data,msg);
     // memcpy(data+strlen(msg)," ",sizeof(" "));
-    send(clientSock,msg,sizeof(msg),0);
+    send(clientSock, msg, sizeof(msg), 0);
 }
 
-void handleRevieveData(char * msg){
-    char * token;
-    token = strsep(&msg,"-");
+void handleRevieveData(char *msg)
+{
+    char *token;
+    token = strsep(&msg, "-");
     trim_newline(token);
 
-    printf("msg from: %s\n[msg]:%s\n",token,msg);
+    printf("msg from: %s\n[msg]:%s\n", token, msg);
 }
 
-void parse_user_input(char *s) {
-    char * token;
-    token = strsep(&s," ");
+void parse_user_input(char *s)
+{
+    char *token;
+    token = strsep(&s, " ");
     trim_newline(token);
 
-    if (strcmp(token,"IP")==0){
+    if (strcmp(token, "IP") == 0)
+    {
         getIP();
     }
-    else if(strcmp(token,"PORT")==0){
+    else if (strcmp(token, "PORT") == 0)
+    {
         getPort(client);
     }
-    else if (strcmp(token,"AUTHOR")==0){
+    else if (strcmp(token, "AUTHOR") == 0)
+    {
         getAuthor();
     }
-    else if (strcmp(token,"LIST")==0){
-        if(loggedIn)
+    else if (strcmp(token, "LIST") == 0)
+    {
+        if (loggedIn)
             // listClients(clientList);
             listClientsForClient(listOfClients);
         else
             printf("Login to the server.\n");
         // listClients();
     }
-    else if(strcmp(token,"REFRESH")==0){
-        if(loggedIn)
+    else if (strcmp(token, "REFRESH") == 0)
+    {
+        if (loggedIn)
             refreshClients(token);
         else
             printf("Login to the server.\n");
     }
-    else if(strcmp(token,"SEND")==0){
-        sendMessage(&clientSock,s);
+    else if (strcmp(token, "SEND") == 0)
+    {
+        sendMessage(&clientSock, s);
     }
-    else if (strcmp(token,"LOGIN")==0){
+    else if (strcmp(token, "BROADCAST") == 0)
+    {
+        Broadcast(s);
+    }
+    else if (strcmp(token, "LOGIN") == 0)
+    {
         login(s);
     }
-    else if (strcmp(token,"LOGOUT")==0){
-        if(loggedIn)
+
+    else if (strcmp(token, "LOGOUT") == 0)
+    {
+        if (loggedIn)
             logout();
         else
             printf("You are not connected to any server\n");
     }
-    else if (strcmp(token,"EXIT")==0){
+    else if (strcmp(token, "EXIT") == 0)
+    {
         exitChat();
     }
-    else{
+    else
+    {
         printf("Invalid Command\n");
     }
 }
 
-void parser_server_data(char * msg){
-    char * token;
-    token = strsep(&msg," ");
+void parser_server_data(char *msg)
+{
+    char *token;
+    token = strsep(&msg, " ");
     trim_newline(token);
 
-    if(strcmp(token,"LIST")==0){
-        receiveClientList(msg,listOfClients);
+    if (strcmp(token, "LIST") == 0)
+    {
+        receiveClientList(msg, listOfClients);
     }
-    else if(strcmp(token,"SEND")==0){
+    else if (strcmp(token, "SEND") == 0)
+    {
         handleRevieveData(msg);
     }
 }
 
-void execute_command(char *command, char* data){
+void execute_command(char *command, char *data)
+{
     printf("Inside execute_command");
-    if (strcmp(command,"IP")==0){
+    if (strcmp(command, "IP") == 0)
+    {
         getIP();
     }
-    else if(strcmp(command,"PORT")==0){
+    else if (strcmp(command, "PORT") == 0)
+    {
         getPort(client);
     }
-    else {
+    else
+    {
         printf("Not a command");
     }
 }
 
-int main() {
+int main()
+{
     char buf[1024];
     int true = 1;
     int msg_count = 0;
@@ -187,43 +224,51 @@ int main() {
     // fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
     // connect(clientSock, server->ai_addr, server->ai_addrlen);
 
-    while(1) {
+    while (1)
+    {
         FD_ZERO(&read_descriptors);
         FD_SET(STDIN_FILENO, &read_descriptors);
-        if(loggedIn){
+        if (loggedIn)
+        {
             FD_SET(clientSock, &read_descriptors);
             max_descriptors = clientSock;
         }
-        else {
+        else
+        {
             max_descriptors = STDIN_FILENO;
         }
-        fflush (stdin);
+        fflush(stdin);
         printf(">");
-        select(max_descriptors + 1,&read_descriptors, NULL, NULL, NULL);
+        select(max_descriptors + 1, &read_descriptors, NULL, NULL, NULL);
 
-        if(FD_ISSET(STDIN_FILENO,&read_descriptors)) {
+        if (FD_ISSET(STDIN_FILENO, &read_descriptors))
+        {
             char msg[1024];
             memset(msg, 0, sizeof(msg));
-            fgets (msg, 1024, stdin);
+            fgets(msg, 1024, stdin);
             trim_newline(msg);
             parse_user_input(msg);
         }
-        else if(FD_ISSET(clientSock,&read_descriptors)){
+        else if (FD_ISSET(clientSock, &read_descriptors))
+        {
             printf("Connected\n");
-            setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv,sizeof(struct timeval));
+            setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
             int index = 0;
             // Bytes read by the socket in one go
             ssize_t bytesRead;
-            while(1){
-                // printf("Before\n");
+            while (1)
+            {
+                printf("Before\n");
                 bytesRead = read(clientSock, buf + index, MAXDATASIZE);
-                // printf("%u\n",bytesRead);
-                if(bytesRead <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
+                printf("%u\n", bytesRead);
+                if (bytesRead <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+                {
                     // perror("recv");
-                    if(sizeof(buf)!=0) {
-                        // printf("Received all the data\n");
-                        buf[index+1] = '\0';
-                        // printf("%u\n",sizeof(buf));
+                    if (sizeof(buf) != 0)
+                    {
+                        printf("Received all the data\n");
+                        buf[index + 1] = '\0';
+                        printf("%u\n", sizeof(buf));
                         parser_server_data(buf);
                     }
                     // if( msg_count == 0){
@@ -242,11 +287,12 @@ int main() {
                 //     printf("%u",sizeof(buf));
                 //     break;
                 // }
-                else {
+                else
+                {
                     // printf("Here\n");
 
                     index = index + bytesRead;
-                    printf("%d\n",index);
+                    printf("%d\n", index);
                 }
             }
             // databytes = recv(clientSock, buf, MAXDATASIZE-1,MSG_PEEK);
@@ -261,7 +307,8 @@ int main() {
 
             // printf("client: received '%s'\n",buf);
         }
-        else {
+        else
+        {
             continue;
         }
     }
@@ -269,7 +316,7 @@ int main() {
 
 // int main(int argc, char *argv[])
 // {
-//     int sockfd, numbytes;  
+//     int sockfd, numbytes;
 //     char buf[MAXDATASIZE];
 //     struct addrinfo hints, *servinfo, *p;
 //     int rv;
@@ -337,3 +384,34 @@ int main() {
 
 //     return 0;
 // }
+
+void Broadcast(char *msg)
+{
+    int sockfd;
+    struct sockaddr_in their_addr; // connector's address information
+    struct hostent *he;
+    int numbytes;
+    int broadcast = 1;
+    their_addr.sin_family = AF_INET;         // host byte order
+    their_addr.sin_port = htons(SERVERPORT); // short, network byte order
+    their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+    memset(their_addr.sin_zero, '\0', sizeof their_addr.sin_zero);
+
+    trim_newline(msg);
+    unsigned char *data = msg;
+    unsigned char *prepend = (char *)"BROADCAST ";
+    unsigned char dataToSend[sizeof(prepend) + sizeof(msg) + 5];
+
+    strcpy(dataToSend, prepend);
+    strcat(dataToSend, msg);
+    // memcpy(dataToSend+strlen(prepend),ip,sizeof(ip));
+    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
+    // memcpy(dataToSend+strlen(prepend)+sizeof(ip),separator,sizeof(separator));
+    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
+    // printf("%s,%d\n",dataToSend,strlen(dataToSend));
+    // memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + strlen(separator), data, sizeof(data));
+    printf("%s,%d\n", dataToSend, strlen(dataToSend));
+    // printf("%s,%d\n",msg,strlen(msg));
+    // handleBroadcast(client, dataToSend);
+    send(clientSock, dataToSend, sizeof(dataToSend), 0);
+}
