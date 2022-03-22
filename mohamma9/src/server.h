@@ -6,8 +6,10 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 // #include <sys/time.h>
+#include "../include/logger.h"
 #include "common_methods.h"
 #include <sys/select.h>
+#define MAX_SIZE 100
 
 int server_socket, total_clients = 30, client_connections[30], client_socket, max_socket_descriptors,
                    addrlen, sd, valread;
@@ -18,6 +20,217 @@ struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 void handleBroadcast(int *client, char *msg);
 
+struct messageQueue
+{
+    char ip[20];
+    char messages[MAX_SIZE][512];
+    int rear;
+    int front;
+};
+
+struct clientStats
+{
+    char ip[20];
+    int port;
+    int message_sent_count;
+    int message_receive_count;
+};
+
+struct clientStats clientStatsList[30] = {0};
+struct messageQueue clientQueue[30] = {0};
+void handleSendData(int *client, char *msg);
+
+void initClientQueue(int *client)
+{
+    int client_found = 0;
+    struct sockaddr_in addr, clientInfo;
+    socklen_t addr_len = sizeof(addr);
+    char ip[20];
+    getpeername(*client, (struct sockaddr *)&addr, &addr_len);
+    memcpy(&clientInfo, &addr, addr_len);
+    memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
+    ip[20] = '\0';
+    for (int i = 0; i < 30; i++)
+    {
+        if (strlen(clientQueue[i].ip) != 0 && strcmp(clientQueue[i].ip, ip) == 0)
+        {
+            printf("Found client\n");
+            client_found = 1;
+            break;
+        }
+    }
+    if (client_found == 0)
+    {
+        for (int i = 0; i < 30; i++)
+        {
+            if (strlen(clientQueue[i].ip) == 0)
+            {
+                strcpy(clientQueue[i].ip, ip);
+                clientQueue[i].front = -1;
+                clientQueue[i].rear = -1;
+                break;
+            }
+        }
+    }
+}
+
+void enqueue(struct messageQueue *queue, char *msg)
+{
+    printf("Enqueing message for ip: %s\n", queue->ip);
+    if (queue->rear == MAX_SIZE - 1)
+        printf("\nQueue is Full!!");
+    else
+    {
+        if (queue->front == -1)
+            queue->front = 0;
+        queue->rear++;
+        strcpy(queue->messages[queue->rear], msg);
+        // printf("\nInserted -> %d", value);
+    }
+}
+
+void dequeue(int *client, struct messageQueue *queue)
+{
+    int sendclient;
+    if (queue->front == -1)
+        printf("\nQueue is Empty!!");
+    else
+    {
+        // printf("Iam here\n");
+        // printf("%s\n",queue->messages[queue->front]);
+        // char * msg = queue->messages[queue->front];
+        // char * token = strsep(&msg,"-");
+        // for(int i=0;i<30;i++){
+        //     struct sockaddr_in addr,clientInfo;
+        //     socklen_t addr_len = sizeof(addr);
+        //     char ip[20];
+        //     getpeername(client_connections[i],(struct sockaddr *)&addr,&addr_len);
+        //     memcpy(&clientInfo,&addr,addr_len);
+        //     memcpy(ip,inet_ntoa(clientInfo.sin_addr),sizeof(ip));
+        //     ip[20] = '\0';
+        //     if(strcmp(ip,token)==0){
+        //         sendclient = client_connections[i];
+        //         break;
+        //     }
+        // }
+        // char msg[sizeof(queue->messages[queue->front])];
+        // memset(msg, 0, sizeof(msg));
+        // printf("\nDeleted : %d", items[front]);
+        // strcpy(msg,queue->messages[queue->front]);
+        printf("Sending data..\n");
+        char *data1 = queue->messages[queue->front];
+        unsigned char *ip = strsep(&data1, " ");
+        trim_newline(ip);
+        trim_newline(data1);
+        unsigned char *data = queue->messages[queue->front];
+        unsigned char *prepend = (char *)"SEND ";
+        unsigned char *separator = (char *)"-";
+        unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(queue->messages[queue->front]) + 5];
+
+        // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
+
+        strcpy(dataToSend, prepend);
+        strcat(dataToSend, ip);
+        strcat(dataToSend, separator);
+        strcat(dataToSend, queue->messages[queue->front]);
+        if (send(*client, dataToSend, sizeof(dataToSend), 0) < 0)
+        {
+            perror("Error to send data");
+        }
+        // sendMessage(client,queue->messages[queue->front]);
+        strcpy(queue->messages[queue->front], "");
+        printf("%s\n", dataToSend);
+        queue->front++;
+        if (queue->front > queue->rear)
+            queue->front = queue->rear = -1;
+        // handleSendData(client,msg);
+    }
+}
+
+void updateClientQueue(char *ip, char *msg)
+{
+    for (int i = 0; i < 30; i++)
+    {
+        if (strcmp(ip, clientQueue[i].ip) == 0)
+        {
+            enqueue(&clientQueue[i], msg);
+            break;
+        }
+    }
+}
+
+void updateClientStats(int *client, int sent, int received)
+{
+    struct sockaddr_in addr, clientInfo;
+    socklen_t addr_len = sizeof(addr);
+    char ip[20];
+    getpeername(*client, (struct sockaddr *)&addr, &addr_len);
+    memcpy(&clientInfo, &addr, addr_len);
+    memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
+    ip[20] = '\0';
+    int clientFound = 0;
+    for (int i = 0; i < 30; i++)
+    {
+        if (strcmp(ip, clientStatsList[i].ip) == 0)
+        {
+            // printf("Found Client\n");
+            if (sent == 1)
+            {
+                clientStatsList[i].message_sent_count += 1;
+            }
+            if (received == 1)
+            {
+                clientStatsList[i].message_receive_count += 1;
+            }
+            clientFound = 1;
+        }
+    }
+    if (clientFound == 0)
+    {
+        // puts("Did not find client");
+        for (int i = 0; i < 30; i++)
+        {
+            if (strlen(clientStatsList[i].ip) == 0)
+            {
+                // puts("Adding client here");
+                strcpy(clientStatsList[i].ip, ip);
+                clientStatsList[i].port = ntohs(clientInfo.sin_port);
+                clientStatsList[i].message_sent_count = 0;
+                clientStatsList[i].message_receive_count = 0;
+                break;
+            }
+        }
+    }
+}
+
+void showStats()
+{
+    for (int i = 0; i < 30; i++)
+    {
+        struct sockaddr_in addr, clientInfo;
+        socklen_t addr_len = sizeof(addr);
+        char ip[20];
+        if (client_connections[i] != 0)
+        {
+            getpeername(client_connections[i], (struct sockaddr *)&addr, &addr_len);
+            memcpy(&clientInfo, &addr, addr_len);
+            memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
+            if (strcmp(ip, clientStatsList[i].ip) == 0)
+            {
+                cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", (i + 1), clientStatsList[i].ip,
+                                      clientStatsList[i].message_sent_count, clientStatsList[i].message_receive_count, "Online");
+                // printf("Client IP: %s, Messages Sent: %d, Messages Received: %d\n",clientStatsList[i].ip,
+                // clientStatsList[i].message_sent_count,clientStatsList[i].message_receive_count);
+            }
+        }
+        else if (strlen(clientStatsList[i].ip) != 0)
+        {
+            cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", (i + 1), clientStatsList[i].ip,
+                                  clientStatsList[i].message_sent_count, clientStatsList[i].message_receive_count, "Offline");
+        }
+    }
+}
+
 void parse_user_input(char *s)
 {
     char *token;
@@ -26,21 +239,35 @@ void parse_user_input(char *s)
 
     if (strcmp(token, "IP") == 0)
     {
+        cse4589_print_and_log("[%s:SUCCESS]\n", "IP");
         getIP();
+        cse4589_print_and_log("[%s:END]\n", "IP");
     }
     else if (strcmp(token, "PORT") == 0)
     {
+        cse4589_print_and_log("[%s:SUCCESS]\n", "PORT");
         getPort(&server_address);
+        cse4589_print_and_log("[%s:END]\n", "PORT");
     }
     else if (strcmp(token, "AUTHOR") == 0)
     {
+        cse4589_print_and_log("[%s:SUCCESS]\n", "AUTHOR");
         getAuthor();
+        cse4589_print_and_log("[%s:END]\n", "AUTHOR");
     }
     else if (strcmp(token, "LIST") == 0)
     {
+        cse4589_print_and_log("[%s:SUCCESS]\n", "LIST");
         listClients(client_connections);
+        cse4589_print_and_log("[%s:END]\n", "LIST");
     }
-    
+    else if (strcmp(token, "STATISTICS") == 0)
+    {
+        cse4589_print_and_log("[%s:SUCCESS]\n", "STATISTICS");
+        showStats();
+        cse4589_print_and_log("[%s:END]\n", "STATISTICS");
+    }
+
     else
     {
         printf("Invalid Command\n");
@@ -54,7 +281,9 @@ void handleRefresh(int *client)
 
 void handleSendData(int *client, char *msg)
 {
-    char *token;
+    int data_sent = 0;
+    // printf("%s\n",msg);
+    char *token; // who to send
     token = strsep(&msg, "-");
     trim_newline(token);
     trim_newline(msg);
@@ -73,23 +302,77 @@ void handleSendData(int *client, char *msg)
             {
                 struct sockaddr_in senderAddr, senderInfo;
                 socklen_t senderAddr_len = sizeof(senderAddr);
-                char senderIp[20];
+                char senderIp[20]; // who sent
                 unsigned char *messageData = msg;
                 getpeername(*client, (struct sockaddr *)&senderAddr, &senderAddr_len);
                 memcpy(&senderInfo, &senderAddr, senderAddr_len);
-                memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(ip));
+                memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(senderIp));
                 senderIp[20] = '\0';
                 unsigned char *separator = (char *)" ";
                 unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
-                printf("%d\n", sizeof(data));
+                // printf("%d\n",sizeof(data));
                 strcpy(data, senderIp);
-                printf("%s,%d\n", data, strlen(data));
+                // printf("%s,%d\n",data,strlen(data));
                 memcpy(data + strlen(senderIp), separator, sizeof(separator) + sizeof(senderIp));
-                printf("%s,%d\n", data, strlen(data));
+                // printf("%s,%d\n",data,strlen(data));
                 memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
-                printf("%s,%d\n", data, strlen(data));
-                printf("%s,%d\n", messageData, strlen(messageData));
+                // printf("%s,%d\n",data,strlen(data));
+                // printf("%s,%d\n",messageData,strlen(messageData));
+                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, ip, msg);
                 sendMessage(&client_connections[i], data);
+                updateClientStats(client, 1, 0);
+                updateClientStats(&client_connections[i], 0, 1);
+                data_sent = 1;
+            }
+        }
+    }
+    if (data_sent == 0)
+    {
+        struct sockaddr_in senderAddr, senderInfo;
+        socklen_t senderAddr_len = sizeof(senderAddr);
+        char senderIp[20];
+        unsigned char *messageData = msg;
+        getpeername(*client, (struct sockaddr *)&senderAddr, &senderAddr_len);
+        memcpy(&senderInfo, &senderAddr, senderAddr_len);
+        memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(senderIp));
+        senderIp[20] = '\0';
+        unsigned char *separator = (char *)" ";
+        // unsigned char * separator1 = (char *)"-";
+        unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
+        // printf("%d\n",sizeof(data));
+        strcpy(data, senderIp); // senderIP
+        strcat(data, separator);
+        // strcat(data,token); // who to send
+        // strcat(data,separator1);
+        strcat(data, messageData);
+        // printf("%s,%d\n",data,strlen(data));
+        // memcpy(data + strlen(senderIp) , separator,sizeof(separator)+ sizeof(senderIp));
+        // // printf("%s,%d\n",data,strlen(data));
+        // memcpy(data + strlen(senderIp) + strlen(separator), senderIp,sizeof(separator)+ sizeof(senderIp)+ sizeof(senderIp));
+        // memcpy(data + strlen(senderIp) + strlen(senderIp) + strlen(separator), separator,sizeof(separator)+ sizeof(senderIp)+sizeof(separator)+ sizeof(senderIp));
+        // // printf("%s,%d\n",data,strlen(data));
+        // memcpy(data + strlen(senderIp) + strlen(separator) + strlen(senderIp) + strlen(separator), messageData,sizeof(separator)+ sizeof(senderIp)+ sizeof(separator)+ sizeof(senderIp)+ sizeof(messageData));
+        updateClientQueue(token, data);
+    }
+}
+
+void sendQueuedMessages(int *client)
+{
+    struct sockaddr_in addr, clientInfo;
+    socklen_t addr_len = sizeof(addr);
+    char ip[20];
+    printf("Sending queued messages...\n");
+    getpeername(*client, (struct sockaddr *)&addr, &addr_len);
+    memcpy(&clientInfo, &addr, addr_len);
+    memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
+    ip[20] = '\0';
+    for (int i = 0; i < 30; i++)
+    {
+        if (strcmp(ip, clientQueue[i].ip) == 0 && clientQueue[i].rear != -1)
+        {
+            while (clientQueue[i].rear != -1)
+            {
+                dequeue(client, &clientQueue[i]);
             }
         }
     }
@@ -98,7 +381,7 @@ void handleSendData(int *client, char *msg)
 void parse_client_data(int *client, char *s)
 {
     char *token;
-    printf("%s\n", s);
+    // printf("%s\n",s);
     token = strsep(&s, " ");
     trim_newline(token);
     if (strcmp(token, "REFRESH") == 0)
@@ -115,13 +398,13 @@ void parse_client_data(int *client, char *s)
     }
 }
 
-void start_server()
+void start_server(int port)
 {
 
     struct sockaddr_storage client_address;
 
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(9002);
+    server_address.sin_port = htons(port);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // for (int i = 0; i < total_clients; i++)
@@ -152,7 +435,7 @@ void start_server()
         FD_SET(STDIN_FILENO, &read_descriptors);
         max_socket_descriptors = server_socket;
         fflush(stdin);
-        printf(">");
+        // puts(">");
 
         for (int i = 0; i < total_clients; i++)
         {
@@ -180,6 +463,8 @@ void start_server()
                 exit(EXIT_FAILURE);
             }
             addClient(&client_socket, client_connections);
+            initClientQueue(&client_socket);
+            updateClientStats(&client_socket, 0, 0);
             // for (int i = 0; i < total_clients; i++)
             // {
             //     //if position is empty
@@ -203,6 +488,7 @@ void start_server()
             // char buf[1024];
             // memset(buf, 0, sizeof(buf));
             // int lastBit;
+            // sendQueuedMessages(&client_socket);
 
             // lastBit = recv(server_socket, buf, sizeof(buf), 0);
             // if (lastBit > 0 && lastBit < 1024)
