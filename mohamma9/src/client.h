@@ -13,7 +13,7 @@
 
 #include <arpa/inet.h>
 
-#define PORT "9002" // the port client will be connecting to
+//#define PORT "9002" // the port client will be connecting to
 
 #define MAXDATASIZE 1024 // max number of bytes we can get at once
 
@@ -172,6 +172,10 @@ void parse_client_user_input(char *s)
     else if (strcmp(token, "SEND") == 0)
     {
         sendMessage(&clientSock, s);
+    }
+    else if (strcmp(token, "BROADCAST") == 0)
+    {
+        Broadcast(s);
     }
     else if (strcmp(token, "LOGIN") == 0)
     {
@@ -429,15 +433,15 @@ void start_client(int port)
 
 void Broadcast(char *msg)
 {
-    int sockfd;
-    struct sockaddr_in their_addr; // connector's address information
-    struct hostent *he;
-    int numbytes;
-    int broadcast = 1;
-    their_addr.sin_family = AF_INET;   // host byte order
-    their_addr.sin_port = htons(PORT); // short, network byte order
-    their_addr.sin_addr = *((struct in_addr *)he->h_addr);
-    memset(their_addr.sin_zero, '\0', sizeof their_addr.sin_zero);
+    // int sockfd;
+    // struct sockaddr_in their_addr; // connector's address information
+    // struct hostent *he;
+    // int numbytes;
+    // int broadcast = 1;
+    // their_addr.sin_family = AF_INET;   // host byte order
+    // their_addr.sin_port = htons(); // short, network byte order
+    // their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+    // memset(their_addr.sin_zero, '\0', sizeof their_addr.sin_zero);
 
     trim_newline(msg);
     unsigned char *data = msg;

@@ -552,7 +552,7 @@ void handleBroadcast(int *client, char *msg)
         struct sockaddr_in addr, clientInfo;
         socklen_t addr_len = sizeof(addr);
         char ip[20];
-        if (client_connections[i] != 0)
+        if (client_connections[i] != 0 && client_connections[i] != *client)
         {
             getpeername(client_connections[i], (struct sockaddr *)&addr, &addr_len);
             memcpy(&clientInfo, &addr, addr_len);
