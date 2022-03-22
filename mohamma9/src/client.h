@@ -169,15 +169,15 @@ void parse_client_user_input(char *s)
     }
     else if (strcmp(token, "SEND") == 0)
     {
-        cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
+        // cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
         sendMessage(&clientSock, s);
-        cse4589_print_and_log("[%s:END]\n", "SEND");
+        // cse4589_print_and_log("[%s:END]\n", "SEND");
     }
     else if (strcmp(token, "BROADCAST") == 0)
     {
-        cse4589_print_and_log("[%s:SUCCESS]\n", "BROADCAST");
+        // cse4589_print_and_log("[%s:SUCCESS]\n", "BROADCAST");
         Broadcast(s);
-        cse4589_print_and_log("[%s:END]\n", "BROADCAST");
+        // cse4589_print_and_log("[%s:END]\n", "BROADCAST");
     }
     else if (strcmp(token, "LOGIN") == 0)
     {

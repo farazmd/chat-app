@@ -157,8 +157,8 @@ void updateClientQueue(char *ip,char * msg){
         }
     }
     if(done == 0){
-        cse4589_print_and_log("[%s:ERROR]\n","REPLAYED");
-        cse4589_print_and_log("[%s:END]\n","REPLAYED");
+        cse4589_print_and_log("[%s:ERROR]\n","RELAYED");
+        cse4589_print_and_log("[%s:END]\n","RELAYED");
     }
 }
 
@@ -213,6 +213,28 @@ void showStats()
         struct sockaddr_in addr, clientInfo;
         socklen_t addr_len = sizeof(addr);
         char ip[20];
+        char host[256];
+        if(strcmp(clientStatsList[i].ip,"128.205.36.46")==0){
+                strcpy(host,"stones.cse.buffalo.edu");
+            }
+            else if(strcmp(clientStatsList[i].ip,"128.205.36.35")==0){
+                strcpy(host,"embankment.cse.buffalo.edu");
+            }
+            else if(strcmp(clientStatsList[i].ip,"128.205.36.33")==0){
+                strcpy(host,"highgate.cse.buffalo.edu");
+            }
+            else if(strcmp(clientStatsList[i].ip,"128.205.36.34")==0){
+                strcpy(host,"euston.cse.buffalo.edu");
+            }
+            else if(strcmp(clientStatsList[i].ip,"128.205.36.8")==0){
+                strcpy(host,"timberlake.cse.buffalo.edu");
+            }
+            else if(strcmp(clientStatsList[i].ip,"128.205.36.36")==0){
+                strcpy(host,"underground.cse.buffalo.edu");
+            }
+            else {
+                strcpy(host,"docker");
+            }
         if (client_connections[i] != 0)
         {
             getpeername(client_connections[i], (struct sockaddr *)&addr, &addr_len);
@@ -220,7 +242,7 @@ void showStats()
             memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
             if (strcmp(ip, clientStatsList[i].ip) == 0)
             {
-                cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", (i + 1), clientStatsList[i].ip,
+                cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", (i + 1), host,
                                       clientStatsList[i].message_sent_count, clientStatsList[i].message_receive_count, "logged-in");
                 // printf("Client IP: %s, Messages Sent: %d, Messages Received: %d\n",clientStatsList[i].ip,
                 // clientStatsList[i].message_sent_count,clientStatsList[i].message_receive_count);
@@ -228,7 +250,7 @@ void showStats()
         }
         else if (strlen(clientStatsList[i].ip) != 0)
         {
-            cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", (i + 1), clientStatsList[i].ip,
+            cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", (i + 1), host,
                                   clientStatsList[i].message_sent_count, clientStatsList[i].message_receive_count, "logged-out");
         }
     }
