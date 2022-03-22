@@ -39,10 +39,10 @@
 int main(int argc, char **argv)
 {
 	/*Init. Logger*/
-	// cse4589_init_log(argv[2]);
+	cse4589_init_log(argv[2]);
 
 	/*Clear LOGFILE*/
-	// fclose(fopen(LOGFILE, "w"));
+	fclose(fopen(LOGFILE, "w"));
 
 	/*Start Here*/
 	int port = atoi(argv[2]);

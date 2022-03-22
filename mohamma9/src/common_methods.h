@@ -11,9 +11,11 @@
 #include <sys/select.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "../include/logger.h"
 
 struct clientData {
     char ip[20];
+    // char host[256];
     int port;
 };
 
@@ -84,7 +86,7 @@ void getIP(void) {
     getsockname(_socket, ( struct sockaddr*)&_address,&sin_size);
 
     inet_ntop(AF_INET, &_address.sin_addr, myIP, sizeof(myIP));
-    printf("IP: %s\n",myIP);
+    cse4589_print_and_log("IP:%s\n",myIP);
 
     close(_socket); 
 }
@@ -92,11 +94,11 @@ void getIP(void) {
 void getPort(struct sockaddr_in *socket_addr) {
     int myPort;
     myPort = ntohs(socket_addr->sin_port);
-    printf("PORT: %u\n", myPort);
+    cse4589_print_and_log("PORT:%u\n", myPort);
 }
 
 void getAuthor(void) {
-    printf("I, %s, have read and understood the course academic integrity policy.\n", "mohamma9");
+    cse4589_print_and_log("I, %s, have read and understood the course academic integrity policy.\n", "mohamma9");
 }
 void listClients(int * clientList){
     struct sockaddr_storage cp = {0};
@@ -106,8 +108,9 @@ void listClients(int * clientList){
     for(int i=0;i<30;i++){
         if(clientList[i] !=0){
             getpeername(clientList[i],(struct sockaddr *)&addr, &addr_len);
-            printf("Peer IP address: %s\n", inet_ntoa(addr.sin_addr));
-            printf("Peer port      : %u\n", ntohs(addr.sin_port));
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", (i+1), inet_ntoa(addr.sin_addr), inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+            // printf("Peer IP address: %s\n", inet_ntoa(addr.sin_addr));
+            // printf("Peer port      : %u\n", ntohs(addr.sin_port));
             count++;
         }
     }
@@ -127,7 +130,7 @@ void sendClientList(int *client,int *clientList){
         // data[i] = clientList[i];
         struct sockaddr_in addr,clientInfo;
         socklen_t addr_len = sizeof(addr);
-        if(clientList[i]!=0){
+        if(clientList[i]!=0 && clientList[i]!= *client){
             getpeername(clientList[i],(struct sockaddr *)&addr,&addr_len);
             memcpy(&clientInfo,&addr,addr_len);
             memcpy(data[i].ip,inet_ntoa(clientInfo.sin_addr),sizeof(data[i].ip));
@@ -151,13 +154,13 @@ void receiveClientList(char *data,struct clientData *clientList){
     struct clientData receivedData[30];
     memcpy(receivedData,data,sizeof(receivedData));
     // printf()
-    printf("Receiving list of clients\n");
+    // printf("Receiving list of clients\n");
     for(int i=0;i<30;i++){
         memcpy(clientList[i].ip,receivedData[i].ip,sizeof(clientList[i].ip));
         clientList[i].port = ntohs(receivedData[i].port);
     }
     // send(*client,data, sizeof(data),0);
-    printf("Received list of clients\n");
+    // printf("Received list of clients\n");
 }
 
 void listClientsForClient(struct clientData *data){
@@ -186,7 +189,7 @@ void sendMessage(int *fd,char * msg){
     unsigned char * separator = (char *)"-";
     unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg) +5];
 
-    printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
+    // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
 
     strcpy(dataToSend,prepend);
     strcat(dataToSend,ip);
@@ -198,8 +201,11 @@ void sendMessage(int *fd,char * msg){
     // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
     // printf("%s,%d\n",dataToSend,strlen(dataToSend));
     // memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + strlen(separator), data, sizeof(data));
-    printf("%s,%d\n",dataToSend,strlen(dataToSend));
+    // printf("%s,%d\n",dataToSend,strlen(dataToSend));
     // printf("%s,%d\n",msg,strlen(msg));
-    send(*fd,dataToSend, sizeof(dataToSend),0);
+    if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
+        perror("Error to send data");
+    }
+
 }
 #endif

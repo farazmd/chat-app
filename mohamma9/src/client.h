@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-
+#include "../include/logger.h"
 #include "common_methods.h"
 
 #include <arpa/inet.h>
@@ -108,42 +108,76 @@ void parse_client_user_input(char *s) {
     trim_newline(token);
 
     if (strcmp(token,"IP")==0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", "IP");
         getIP();
+        cse4589_print_and_log("[%s:END]\n", "IP");
     }
     else if(strcmp(token,"PORT")==0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", "PORT");
         getPort(client);
+        cse4589_print_and_log("[%s:END]\n", "IP");
     }
     else if (strcmp(token,"AUTHOR")==0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", "AUTHOR");
         getAuthor();
+        cse4589_print_and_log("[%s:END]\n", "IP");
     }
     else if (strcmp(token,"LIST")==0){
-        if(loggedIn)
-            // listClients(clientList);
+        if(loggedIn){
+            cse4589_print_and_log("[%s:SUCCESS]\n", "LIST");
             listClientsForClient(listOfClients);
-        else
-            printf("Login to the server.\n");
+            cse4589_print_and_log("[%s:END]\n", "LIST");
+        }
+            // listClients(clientList);
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", "LIST");
+            // printf("Login to the server.\n");
+            cse4589_print_and_log("[%s:END]\n", "LIST");
+        }
         // listClients();
     }
     else if(strcmp(token,"REFRESH")==0){
-        if(loggedIn)
+        if(loggedIn){
+            cse4589_print_and_log("[%s:SUCCESS]\n", "REFRESH");
             refreshClients(token);
-        else
-            printf("Login to the server.\n");
+            cse4589_print_and_log("[%s:END]\n", "REFRESH");
+        }
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", "REFRESH");
+                printf("Login to the server.\n");
+            cse4589_print_and_log("[%s:END]\n", "REFRESH");
+        }
     }
     else if(strcmp(token,"SEND")==0){
         sendMessage(&clientSock,s);
     }
     else if (strcmp(token,"LOGIN")==0){
-        login(s);
+        int i = login(s);
+        if(i==0){
+            cse4589_print_and_log("[%s:SUCCESS]\n", "LOGIN");
+            cse4589_print_and_log("[%s:END]\n", "LOGIN");
+        }
+        else if(i == 1){
+            cse4589_print_and_log("[%s:ERROR]\n", "LOGIN");
+            cse4589_print_and_log("[%s:END]\n", "LOGIN");
+        }
     }
     else if (strcmp(token,"LOGOUT")==0){
-        if(loggedIn)
+        if(loggedIn){
+            cse4589_print_and_log("[%s:SUCCESS]\n", "LOGOUT");
             logout();
-        else
-            printf("You are not connected to any server\n");
+            cse4589_print_and_log("[%s:END]\n", "LOGOUT");
+        }
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", "LOGOUT");
+            cse4589_print_and_log("[%s:END]\n", "LOGOUT");
+            // printf("You are not connected to any server\n");
+        }
     }
     else if (strcmp(token,"EXIT")==0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", "EXIT");
         exitChat();
+        cse4589_print_and_log("[%s:END]\n", "EXIT");
     }
     else{
         printf("Invalid Command\n");
@@ -152,6 +186,7 @@ void parse_client_user_input(char *s) {
 
 void parser_server_data(char * msg){
     char * token;
+    // printf("Server data: %s\n",msg);
     token = strsep(&msg," ");
     trim_newline(token);
 
@@ -205,7 +240,7 @@ void start_client (int port) {
             max_descriptors = STDIN_FILENO;
         }
         fflush (stdin);
-        puts(">");
+        // puts(">");
         select(max_descriptors + 1,&read_descriptors, NULL, NULL, NULL);
 
         if(FD_ISSET(STDIN_FILENO,&read_descriptors)) {
@@ -229,7 +264,7 @@ void start_client (int port) {
                     if(sizeof(buf)!=0) {
                         // printf("Received all the data\n");
                         buf[index+1] = '\0';
-                        // printf("%u\n",sizeof(buf));
+                        // printf("Client Receive: %s\n",buf);
                         parser_server_data(buf);
                     }
                     // if( msg_count == 0){
@@ -252,7 +287,7 @@ void start_client (int port) {
                     // printf("Here\n");
 
                     index = index + bytesRead;
-                    printf("%d\n",index);
+                    // printf("%d\n",index);
                 }
             }
             // databytes = recv(clientSock, buf, MAXDATASIZE-1,MSG_PEEK);
