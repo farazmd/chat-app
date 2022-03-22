@@ -16,7 +16,6 @@
 struct clientData
 {
     char ip[20];
-    // char host[256];
     int port;
 };
 
@@ -31,10 +30,30 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
-void initClientList(int *clientList)
+void swap(struct clientData * xp, struct clientData* yp)
 {
+    struct clientData temp = *xp;
+    *xp = *yp;
+    *yp = temp;
+}
+
+void sort(struct clientData *arr, int n)
+{
+    int i, j, min_idx;
+ 
+    for (i = 0; i < n - 1; i++) {
+        min_idx = i;
+        for (j = i + 1; j < n; j++)
+        if (arr[j].port < arr[min_idx].port)
+            min_idx = j;
+
+        swap(&arr[min_idx], &arr[i]);
+    }
+}
+
+void initClientList(int *clientList){
     struct sockaddr_storage cp = {0};
-    printf("In initCLientList\n");
+    // printf("In initCLientList\n");
     for (int i = 0; i < 30; i++)
         clientList[i] = 0;
 }
@@ -46,7 +65,7 @@ void addClient(int *client, int *clientList)
     struct sockaddr_in _address;
     _address = *(struct sockaddr_in *)client;
     struct sockaddr_storage cp = {0};
-    printf("Adding Client\n");
+    // printf("Adding Client\n");
     for (i = 0; i < 30; i++)
     {
         if (clientList[i] == 0)
@@ -56,7 +75,7 @@ void addClient(int *client, int *clientList)
             break;
         }
     }
-    printf("Client Added\n");
+    // printf("Client Added\n");
 }
 
 void removeClient(int *client, int *clientList)
@@ -119,12 +138,31 @@ void listClients(int *clientList)
     struct sockaddr_in addr;
     socklen_t addr_len = sizeof(addr);
     int count = 0;
-    for (int i = 0; i < 30; i++)
-    {
-        if (clientList[i] != 0)
-        {
-            getpeername(clientList[i], (struct sockaddr *)&addr, &addr_len);
-            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", (i + 1), inet_ntoa(addr.sin_addr), inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+    char ip[20];
+    char host[256];
+    for(int i=0;i<30;i++){
+        if(clientList[i] !=0){
+            getpeername(clientList[i],(struct sockaddr *)&addr, &addr_len);
+            memcpy(ip,inet_ntoa(addr.sin_addr),sizeof(ip));
+            if(strcmp(ip,"128.205.36.46")==0){
+                strcpy(host,"stones.cse.buffalo.edu");
+            }
+            else if(strcmp(ip,"128.205.36.35")==0){
+                strcpy(host,"embankment.cse.buffalo.edu");
+            }
+            else if(strcmp(ip,"128.205.36.33")==0){
+                strcpy(host,"highgate.cse.buffalo.edu");
+            }
+            else if(strcmp(ip,"128.205.36.34")==0){
+                strcpy(host,"euston.cse.buffalo.edu");
+            }
+            else if(strcmp(ip,"128.205.36.8")==0){
+                strcpy(host,"timberlake.cse.buffalo.edu");
+            }
+            else {
+                strcpy(host,"docker");
+            }
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", (count + 1), host, ip, ntohs(addr.sin_port));
             // printf("Peer IP address: %s\n", inet_ntoa(addr.sin_addr));
             // printf("Peer port      : %u\n", ntohs(addr.sin_port));
             count++;
@@ -149,11 +187,11 @@ void sendClientList(int *client, int *clientList)
         // data[i] = clientList[i];
         struct sockaddr_in addr, clientInfo;
         socklen_t addr_len = sizeof(addr);
-        if (clientList[i] != 0 && clientList[i] != *client)
-        {
-            getpeername(clientList[i], (struct sockaddr *)&addr, &addr_len);
-            memcpy(&clientInfo, &addr, addr_len);
-            memcpy(data[i].ip, inet_ntoa(clientInfo.sin_addr), sizeof(data[i].ip));
+        struct hostent *he;
+        if(clientList[i]!=0){
+            getpeername(clientList[i],(struct sockaddr *)&addr,&addr_len);
+            memcpy(&clientInfo,&addr,addr_len);
+            memcpy(data[i].ip,inet_ntoa(clientInfo.sin_addr),sizeof(data[i].ip));
             data[i].ip[20] = '\0';
             data[i].port = clientInfo.sin_port;
         }
@@ -185,13 +223,36 @@ void receiveClientList(char *data, struct clientData *clientList)
     // printf("Received list of clients\n");
 }
 
-void listClientsForClient(struct clientData *data)
-{
-    for (int i = 0; i < 30; i++)
-    {
-        printf("%d\n", strlen(data[i].ip));
-        if (strlen(data[i].ip) > 0 && data[i].port != 0)
-            printf("IP: %s PORT: %d\n", data[i].ip, data[i].port);
+void listClientsForClient(struct clientData *data){
+    struct clientData sortedData[30];
+    memcpy(sortedData,data,sizeof(sortedData));
+    sort(sortedData,30);
+    int count =0;
+    for(int  i=0;i<30;i++){
+        char host[256];
+        // printf("%d\n",strlen(data[i].ip));
+        if(strlen(sortedData[i].ip)>0 && sortedData[i].port!=0){
+            count++;
+            if(strcmp(sortedData[i].ip,"128.205.36.46")==0){
+                strcpy(host,"stones.cse.buffalo.edu");
+            }
+            else if(strcmp(sortedData[i].ip,"128.205.36.35")==0){
+                strcpy(host,"embankment.cse.buffalo.edu");
+            }
+            else if(strcmp(sortedData[i].ip,"128.205.36.33")==0){
+                strcpy(host,"highgate.cse.buffalo.edu");
+            }
+            else if(strcmp(sortedData[i].ip,"128.205.36.34")==0){
+                strcpy(host,"euston.cse.buffalo.edu");
+            }
+            else if(strcmp(sortedData[i].ip,"128.205.36.8")==0){
+                strcpy(host,"timberlake.cse.buffalo.edu");
+            }
+            else {
+                strcpy(host,"docker");
+            }
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", count, host, sortedData[i].ip, sortedData[i].port);
+        }
     }
 }
 
@@ -223,13 +284,12 @@ void sendMessage(int *fd, char *msg)
     // memcpy(dataToSend+strlen(prepend),ip,sizeof(ip));
     // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
     // memcpy(dataToSend+strlen(prepend)+sizeof(ip),separator,sizeof(separator));
-    printf("%s,%d\n", dataToSend, sizeof(ip) + strlen(prepend));
-    printf("%s,%d\n", dataToSend, strlen(dataToSend));
+    // printf("%s,%d\n", dataToSend, sizeof(ip) + strlen(prepend));
+    // printf("%s,%d\n", dataToSend, strlen(dataToSend));
     // memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + strlen(separator), data, sizeof(data));
     // printf("%s,%d\n",dataToSend,strlen(dataToSend));
-    // printf("%s,%d\n",msg,strlen(msg));
-    if (send(*fd, dataToSend, sizeof(dataToSend), 0) < 0)
-    {
+    // printf("%d\n",*fd);
+    if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
         perror("Error to send data");
     }
 }

@@ -127,19 +127,19 @@ void dequeue(int *client, struct messageQueue *queue)
         unsigned char *separator = (char *)"-";
         unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(queue->messages[queue->front]) + 5];
 
-        // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
+        // printf("%s,%s,%d\n",ip,data1,sizeof(dataToSend));
 
-        strcpy(dataToSend, prepend);
-        strcat(dataToSend, ip);
-        strcat(dataToSend, separator);
-        strcat(dataToSend, queue->messages[queue->front]);
-        if (send(*client, dataToSend, sizeof(dataToSend), 0) < 0)
-        {
+        strcpy(dataToSend,prepend);
+        strcat(dataToSend,ip);
+        strcat(dataToSend,separator);
+        strcat(dataToSend,data1);
+        // printf("%d\n",*client);
+        if(send(*client,dataToSend, sizeof(dataToSend),0)<0){
             perror("Error to send data");
         }
         // sendMessage(client,queue->messages[queue->front]);
-        strcpy(queue->messages[queue->front], "");
-        printf("%s\n", dataToSend);
+        // strcpy(queue->messages[queue->front],"");
+        // printf("After: %s\n",dataToSend);
         queue->front++;
         if (queue->front > queue->rear)
             queue->front = queue->rear = -1;
@@ -147,15 +147,18 @@ void dequeue(int *client, struct messageQueue *queue)
     }
 }
 
-void updateClientQueue(char *ip, char *msg)
-{
-    for (int i = 0; i < 30; i++)
-    {
-        if (strcmp(ip, clientQueue[i].ip) == 0)
-        {
-            enqueue(&clientQueue[i], msg);
+void updateClientQueue(char *ip,char * msg){
+    int done = 0;
+    for(int i=0;i<30;i++){
+        if(strcmp(ip,clientQueue[i].ip)==0){
+            enqueue(&clientQueue[i],msg);
+            done = 1;
             break;
         }
+    }
+    if(done == 0){
+        cse4589_print_and_log("[%s:ERROR]\n","REPLAYED");
+        cse4589_print_and_log("[%s:END]\n","REPLAYED");
     }
 }
 
@@ -318,10 +321,12 @@ void handleSendData(int *client, char *msg)
                 memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
                 // printf("%s,%d\n",data,strlen(data));
                 // printf("%s,%d\n",messageData,strlen(messageData));
+                cse4589_print_and_log("[%s:SUCCESS]\n","REPLAYED");
                 cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, ip, msg);
-                sendMessage(&client_connections[i], data);
-                updateClientStats(client, 1, 0);
-                updateClientStats(&client_connections[i], 0, 1);
+                cse4589_print_and_log("[%s:END]\n","REPLAYED");
+                sendMessage(&client_connections[i],data);
+                updateClientStats(client,1,0);
+                updateClientStats(&client_connections[i],0,1);
                 data_sent = 1;
             }
         }
@@ -411,7 +416,7 @@ void start_server(int port)
     // {
     //     client_connections[i] = 0;
     // }
-    printf("Inside start_server()");
+    // printf("Inside start_server()");
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         printf("Server: Error");
@@ -488,7 +493,7 @@ void start_server(int port)
             // char buf[1024];
             // memset(buf, 0, sizeof(buf));
             // int lastBit;
-            // sendQueuedMessages(&client_socket);
+            sendQueuedMessages(&client_socket);
 
             // lastBit = recv(server_socket, buf, sizeof(buf), 0);
             // if (lastBit > 0 && lastBit < 1024)
@@ -568,14 +573,14 @@ void handleBroadcast(int *client, char *msg)
             senderIp[20] = '\0';
             unsigned char *separator = (char *)" ";
             unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
-            printf("%d\n", sizeof(data));
+            // printf("%d\n", sizeof(data));
             strcpy(data, senderIp);
-            printf("%s,%d\n", data, strlen(data));
+            // printf("%s,%d\n", data, strlen(data));
             memcpy(data + strlen(senderIp), separator, sizeof(separator) + sizeof(senderIp));
-            printf("%s,%d\n", data, strlen(data));
+            // printf("%s,%d\n", data, strlen(data));
             memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
-            printf("%s,%d\n", data, strlen(data));
-            printf("%s,%d\n", messageData, strlen(messageData));
+            // printf("%s,%d\n", data, strlen(data));
+            // printf("%s,%d\n", messageData, strlen(messageData));
             sendMessage(&client_connections[i], data);
         }
     }
