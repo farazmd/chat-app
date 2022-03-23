@@ -594,16 +594,18 @@ void start_server(int port)
                 // printf("%s\n","Am I here?");
                 while(1){
                     setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
-                    if ((valread = read(sd, buf + index, 256)) <= 0)
+                    valread = read(sd, buf + index, 256);
+                    if (valread <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
                     {   //printf("%s\n","I read?");
-                        if(strlen(buf)!=0){
+                        // if(valread!=0){
                             buf[index + 1] = '\0';
                             // printf("%s\n","Am I here in buf!=0?");
                             // printf("%s\n",buf);
                             parse_client_data(&sd, buf);
                             break;
-                        }
-                        else {
+                        // }
+                    }
+                    else if(valread == 0){
                             // Somebody disconnected , get his details and print
                             getpeername(sd, (struct sockaddr *)&client_address,
                                         (socklen_t *)&addrlen);
@@ -614,12 +616,7 @@ void start_server(int port)
                             close(sd);
                             // client_connections[i] = 0;
                             removeClient(&client_connections[i], client_connections);
-                        }
-                        
-                        break;
-                    }
-                    else if((errno == EAGAIN || errno == EWOULDBLOCK)){
-                        break;
+                            break;
                     }
                     else
                     {
