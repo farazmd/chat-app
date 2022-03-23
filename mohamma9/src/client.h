@@ -102,13 +102,14 @@ void refreshClients(char *msg)
     send(clientSock, msg, sizeof(msg), 0);
 }
 
-void handleRevieveData(char *msg)
+void handleReceiveData(char *msg)
 {
     char *token;
     token = strsep(&msg, "-");
     trim_newline(token);
-
+    cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
     printf("msg from: %s\n[msg]:%s\n", token, msg);
+    cse4589_print_and_log("[%s:END]\n", "RECEIVED");
 }
 
 void parse_client_user_input(char *s)
@@ -169,15 +170,15 @@ void parse_client_user_input(char *s)
     }
     else if (strcmp(token, "SEND") == 0)
     {
-        // cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
+        cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
         sendMessage(&clientSock, s);
-        // cse4589_print_and_log("[%s:END]\n", "SEND");
+        cse4589_print_and_log("[%s:END]\n", "SEND");
     }
     else if (strcmp(token, "BROADCAST") == 0)
     {
-        // cse4589_print_and_log("[%s:SUCCESS]\n", "BROADCAST");
+        cse4589_print_and_log("[%s:SUCCESS]\n", "BROADCAST");
         Broadcast(s);
-        // cse4589_print_and_log("[%s:END]\n", "BROADCAST");
+        cse4589_print_and_log("[%s:END]\n", "BROADCAST");
     }
     else if (strcmp(token, "LOGIN") == 0)
     {
@@ -233,7 +234,7 @@ void parser_server_data(char *msg)
     }
     else if (strcmp(token, "SEND") == 0)
     {
-        handleRevieveData(msg);
+        handleReceiveData(msg);
     }
 }
 
