@@ -585,7 +585,7 @@ void start_server(int port)
             {
                 // Check if it was for closing , and also read the
                 // incoming message
-                if ((valread = read(sd, buf, 1024)) == 0)
+                if ((valread = read(sd, buf, 256)) == 0)
                 {
                     // Somebody disconnected , get his details and print
                     getpeername(sd, (struct sockaddr *)&client_address,
