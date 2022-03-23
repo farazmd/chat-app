@@ -13,7 +13,7 @@
 
 #include <arpa/inet.h>
 
-#define MAXDATASIZE 1024 // max number of bytes we can get at once
+#define MAXDATASIZE 256 // max number of bytes we can get at once
 
 struct sockaddr_in *client;
 int clientSock, databytes, serverSock, temp, max_descriptors;
@@ -51,12 +51,13 @@ int login(char *data)
     setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
     if (clientSock < 0)
     {
-        perror("Client: socket");
+        // perror("Client: socket");
+        return 1;
     }
 
     if ((temp = getaddrinfo(ip, port, &hints, &server)) != 0)
     {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(temp));
+        // fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(temp));
         close(clientSock);
         return 1;
     }
@@ -65,7 +66,7 @@ int login(char *data)
     {
         // perror("Client: server connect\n");
         // printf("Error\n");
-        fprintf(stderr, "Server Connect: %s\n", gai_strerror(temp));
+        // fprintf(stderr, "Server Connect: %s\n", gai_strerror(temp));
         close(clientSock);
         return 1;
     }
@@ -257,7 +258,7 @@ void execute_command(char *command, char *data)
 
 void start_client(int port)
 {
-    char buf[1024];
+    char buf[256];
     int yes = 1;
     int msg_count = 0;
     tv.tv_sec = 0;
@@ -293,9 +294,9 @@ void start_client(int port)
 
         if (FD_ISSET(STDIN_FILENO, &read_descriptors))
         {
-            char msg[1024];
+            char msg[256];
             memset(msg, 0, sizeof(msg));
-            fgets(msg, 1024, stdin);
+            fgets(msg, 256, stdin);
             trim_newline(msg);
             parse_client_user_input(msg);
         }

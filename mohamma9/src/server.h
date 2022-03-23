@@ -15,7 +15,7 @@ int server_socket, total_clients = 30, client_connections[30], client_socket, ma
                    addrlen, sd, valread;
 struct sockaddr_storage clientList[30];
 fd_set read_descriptors;
-char buf[1024];
+char buf[256];
 struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 void handleBroadcast(int *client, char *msg);
@@ -36,6 +36,47 @@ struct clientStats
     int message_receive_count;
 };
 
+struct clientsBlocked {
+    char ip[20];
+    int port;
+    char block_list[30][20];
+};
+
+struct clientsBlocked blockList[30];
+
+void initBlockList(int *client){
+    int client_found = 0;
+    struct sockaddr_in addr, clientInfo;
+    socklen_t addr_len = sizeof(addr);
+    char ip[20];
+    getpeername(*client, (struct sockaddr *)&addr, &addr_len);
+    memcpy(&clientInfo, &addr, addr_len);
+    memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
+    ip[20] = '\0';
+    for (int i = 0; i < 30; i++)
+    {
+        if (strlen(blockList[i].ip) != 0 && strcmp(blockList[i].ip, ip) == 0)
+        {
+            // printf("Found client\n");
+            client_found = 1;
+            break;
+        }
+    }
+    if (client_found == 0)
+    {
+        for (int i = 0; i < 30; i++)
+        {
+            if (strlen(blockList[i].ip) == 0)
+            {
+                strcpy(blockList[i].ip, ip);
+                for (int j=0;j<30;j++)
+                    blockList[i].block_list[j][20] = "\0";
+                break;
+            }
+        }
+    }
+}
+
 struct clientStats clientStatsList[30] = {0};
 struct messageQueue clientQueue[30] = {0};
 void handleSendData(int *client, char *msg);
@@ -54,7 +95,7 @@ void initClientQueue(int *client)
     {
         if (strlen(clientQueue[i].ip) != 0 && strcmp(clientQueue[i].ip, ip) == 0)
         {
-            printf("Found client\n");
+            // printf("Found client\n");
             client_found = 1;
             break;
         }
@@ -71,6 +112,24 @@ void initClientQueue(int *client)
                 break;
             }
         }
+    }
+}
+
+void updateBlockList(char *ip,char * msg){
+    int done = 0;
+    for(int i=0;i<30;i++){
+        if(strcmp(ip,blockList[i].ip)==0){
+            for(int j=0;j<30;j++)
+                if(strlen(blockList[i].block_list[j])==0)
+                    strcpy(blockList[i].block_list[j],ip);
+                done = 1;
+                break;
+            break;
+        }
+    }
+    if(done == 0){
+        cse4589_print_and_log("[%s:ERROR]\n","BLOCK");
+        cse4589_print_and_log("[%s:END]\n","BLOCK");
     }
 }
 
@@ -529,9 +588,9 @@ void start_server(int port)
         }
         else if (FD_ISSET(STDIN_FILENO, &read_descriptors))
         {
-            char msg[1024];
+            char msg[256];
             memset(msg, 0, sizeof(msg));
-            fgets(msg, 1024, stdin);
+            fgets(msg, 256, stdin);
             trim_newline(msg);
             parse_user_input(msg);
         }
@@ -543,7 +602,7 @@ void start_server(int port)
             {
                 // Check if it was for closing , and also read the
                 // incoming message
-                if ((valread = read(sd, buf, 1024)) == 0)
+                if ((valread = read(sd, buf, 256)) == 0)
                 {
                     // Somebody disconnected , get his details and print
                     getpeername(sd, (struct sockaddr *)&client_address,
