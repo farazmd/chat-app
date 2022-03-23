@@ -595,7 +595,7 @@ void start_server(int port)
                 while(1){
                     setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
                     if ((valread = read(sd, buf + index, 256)) <= 0)
-                    // {   printf("%s\n","I read?");
+                    {   //printf("%s\n","I read?");
                         if(strlen(buf)!=0){
                             buf[index + 1] = '\0';
                             // printf("%s\n","Am I here in buf!=0?");
