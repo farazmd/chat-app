@@ -271,7 +271,7 @@ void trim_newline(char *text)
     }
 }
 
-void sendMessage(int *fd, char *msg)
+int sendMessage(int *fd, char *msg)
 {
     unsigned char *ip = strsep(&msg, " ");
     trim_newline(ip);
@@ -297,6 +297,8 @@ void sendMessage(int *fd, char *msg)
     // printf("%d\n",*fd);
     if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
         perror("Error to send data");
+        return 1;
     }
+    return 0;
 }
 #endif

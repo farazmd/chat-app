@@ -96,11 +96,26 @@ void exitChat()
 
 void refreshClients(char *msg)
 {
-    // unsigned char data[sizeof(msg)+1];
-    // trim_newline(msg);
-    // strcpy(data,msg);
-    // memcpy(data+strlen(msg)," ",sizeof(" "));
     send(clientSock, msg, sizeof(msg), 0);
+}
+
+void handleBlock(int *client,char * ip){
+    unsigned char *char_data;
+    unsigned char *prepend = (char *)"BLOCK ";
+    unsigned char *separator = "-";
+    unsigned char dataToSend[sizeof(prepend) + sizeof(separator) + sizeof(ip)];
+
+    strcpy(dataToSend, prepend);
+    strcat(dataToSend, separator);
+    strcat(dataToSend, ip);
+
+    if(send(*client,dataToSend, sizeof(dataToSend),0)<0){
+        cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
+        perror("Error to send data");
+    }
+    else
+        cse4589_print_and_log("[%s:SUCCESS]\n", "BLOCK");
+    cse4589_print_and_log("[%s:END]\n", "BLOCK");
 }
 
 void handleReceiveData(char *msg)
@@ -171,8 +186,11 @@ void parse_client_user_input(char *s)
     }
     else if (strcmp(token, "SEND") == 0)
     {
-        cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
-        sendMessage(&clientSock, s);
+        int status = sendMessage(&clientSock, s);
+        if(status == 0)
+            cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
+        else if(status == 1)
+            cse4589_print_and_log("[%s:ERROR]\n", "SEND");
         cse4589_print_and_log("[%s:END]\n", "SEND");
     }
     else if (strcmp(token, "BROADCAST") == 0)
@@ -180,6 +198,10 @@ void parse_client_user_input(char *s)
         cse4589_print_and_log("[%s:SUCCESS]\n", "BROADCAST");
         Broadcast(s);
         cse4589_print_and_log("[%s:END]\n", "BROADCAST");
+    }
+    else if (strcmp(token, "BLOCK") == 0)
+    {
+        handleBlock(&clientSock,s);
     }
     else if (strcmp(token, "LOGIN") == 0)
     {
@@ -268,12 +290,6 @@ void start_client(int port)
     client_address.sin_port = htons(port);
     client = &client_address;
     puts("Client started");
-    // initClientList(clientList);
-
-    // setsockopt(clientSock, SOL_SOCKET, SO_RCVLOWAT,&opt,sizeof(opt));
-    // setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-    // fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-    // connect(clientSock, server->ai_addr, server->ai_addrlen);
 
     while (1)
     {
@@ -321,22 +337,9 @@ void start_client(int port)
                         // printf("Client Receive: %s\n",buf);
                         parser_server_data(buf);
                     }
-                    // if( msg_count == 0){
-                    //     // uint32_t data[30];
-                    //     // printf("Copying to list");
-                    //     // memcpy(data,buf,sizeof(data));
-                    //     receiveClientList(buf,listOfClients);
-                    // }
-                    // printf("Done\n");
                     msg_count += 1;
                     break;
                 }
-                // else if(bytesRead <= 0){
-                //     printf("Received all the data\n");
-                //     buf[index+1] = '\0';
-                //     printf("%u",sizeof(buf));
-                //     break;
-                // }
                 else
                 {
                     // printf("Here\n");
@@ -345,17 +348,6 @@ void start_client(int port)
                     // printf("%d\n",index);
                 }
             }
-            // databytes = recv(clientSock, buf, MAXDATASIZE-1,MSG_PEEK);
-            // printf("%d\n",databytes);
-            // if(databytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
-
-            //     perror("recv");
-            //     continue;
-            // }
-
-            // buf[databytes] = '\0';
-
-            // printf("client: received '%s'\n",buf);
         }
         else
         {
@@ -366,16 +358,6 @@ void start_client(int port)
 
 void Broadcast(char *msg)
 {
-    // int sockfd;
-    // struct sockaddr_in their_addr; // connector's address information
-    // struct hostent *he;
-    // int numbytes;
-    // int broadcast = 1;
-    // their_addr.sin_family = AF_INET;   // host byte order
-    // their_addr.sin_port = htons(); // short, network byte order
-    // their_addr.sin_addr = *((struct in_addr *)he->h_addr);
-    // memset(their_addr.sin_zero, '\0', sizeof their_addr.sin_zero);
-
     trim_newline(msg);
     unsigned char *data = msg;
     unsigned char *prepend = (char *)"BROADCAST ";
@@ -383,14 +365,5 @@ void Broadcast(char *msg)
 
     strcpy(dataToSend, prepend);
     strcat(dataToSend, msg);
-    // memcpy(dataToSend+strlen(prepend),ip,sizeof(ip));
-    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
-    // memcpy(dataToSend+strlen(prepend)+sizeof(ip),separator,sizeof(separator));
-    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
-    // printf("%s,%d\n",dataToSend,strlen(dataToSend));
-    // memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + strlen(separator), data, sizeof(data));
-    // printf("%s,%d\n", dataToSend, strlen(dataToSend));
-    // printf("%s,%d\n",msg,strlen(msg));
-    // handleBroadcast(client, dataToSend);
     send(clientSock, dataToSend, sizeof(dataToSend), 0);
 }
