@@ -280,25 +280,38 @@ int sendMessage(int *fd, char *msg)
     unsigned char *prepend = (char *)"SEND ";
     unsigned char *separator = (char *)"-";
     unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg) + 5];
+    int totalSent = 0;
+    while(totalSent != strlen(msg)){
+        printf("Sending...\n");
+        char * chunk;
+        if(strlen(msg) > 255-(strlen(prepend) + strlen(separator) + strlen(ip))){
+            int count = strlen(msg) - 255 -(strlen(prepend) + strlen(separator) + strlen(ip));
+            strcpy(dataToSend, prepend);
+            strcat(dataToSend, ip);
+            strcat(dataToSend, separator);
+            strncpy(chunk,msg+totalSent,count);
+            strcat(dataToSend, chunk);
+            strcat(dataToSend,"*");
+            totalSent += count;
+            if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
+                perror("Error to send data");
+                return 1;
+            }
+        }
+        else {
+            strcpy(dataToSend, prepend);
+            strcat(dataToSend, ip);
+            strcat(dataToSend, separator);
+            strcat(dataToSend,msg);
+            if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
+                perror("Error to send data");
+                return 1;
+            }
+            break;
+        }
+    }
 
     // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
-
-    strcpy(dataToSend, prepend);
-    strcat(dataToSend, ip);
-    strcat(dataToSend, separator);
-    strcat(dataToSend, msg);
-    // memcpy(dataToSend+strlen(prepend),ip,sizeof(ip));
-    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
-    // memcpy(dataToSend+strlen(prepend)+sizeof(ip),separator,sizeof(separator));
-    // printf("%s,%d\n", dataToSend, sizeof(ip) + strlen(prepend));
-    // printf("%s,%d\n", dataToSend, strlen(dataToSend));
-    // memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + strlen(separator), data, sizeof(data));
-    // printf("%s,%d\n",dataToSend,strlen(dataToSend));
-    // printf("%d\n",*fd);
-    if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
-        perror("Error to send data");
-        return 1;
-    }
     return 0;
 }
 #endif

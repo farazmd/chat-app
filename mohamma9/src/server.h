@@ -15,7 +15,7 @@ int server_socket, total_clients = 30, client_connections[30], client_socket, ma
                    addrlen, sd, valread;
 struct sockaddr_storage clientList[30];
 fd_set read_descriptors;
-char buf[1024];
+char buf[256];
 struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 void handleBroadcast(int *client, char *msg);
@@ -449,7 +449,7 @@ void sendQueuedMessages(int *client)
 void parse_client_data(int *client, char *s)
 {
     char *token;
-    // printf("%s\n",s);
+    printf("%s\n",s);
     token = strsep(&s, " ");
     trim_newline(token);
     if (strcmp(token, "REFRESH") == 0)
@@ -463,6 +463,13 @@ void parse_client_data(int *client, char *s)
     else if (strcmp(token, "BROADCAST") == 0)
     {
         handleBroadcast(client, s);
+    }
+    else {
+        printf("I'm here\n");
+        char msg[sizeof(token) + sizeof(s)];
+        strcpy(msg,token);
+        strcat(msg,s);
+        handleSendData(client, msg);
     }
 }
 
@@ -573,7 +580,7 @@ void start_server(int port)
         {
             char msg[1024];
             memset(msg, 0, sizeof(msg));
-            fgets(msg, 1024, stdin);
+            fgets(msg, 256, stdin);
             trim_newline(msg);
             parse_user_input(msg);
         }
@@ -585,7 +592,7 @@ void start_server(int port)
             {
                 // Check if it was for closing , and also read the
                 // incoming message
-                if ((valread = read(sd, buf, 256)) == 0)
+                if ((valread = read(sd, buf, 255)) == 0)
                 {
                     // Somebody disconnected , get his details and print
                     getpeername(sd, (struct sockaddr *)&client_address,
@@ -597,6 +604,7 @@ void start_server(int port)
                     close(sd);
                     // client_connections[i] = 0;
                     removeClient(&client_connections[i], client_connections);
+                    break;
                 }
                 else
                 {
@@ -604,6 +612,7 @@ void start_server(int port)
                     // of the data read
                     buf[valread + 1] = '\0';
                     parse_client_data(&sd, buf);
+                    // memset()
                 }
             }
         }

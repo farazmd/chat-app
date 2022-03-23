@@ -310,9 +310,9 @@ void start_client(int port)
 
         if (FD_ISSET(STDIN_FILENO, &read_descriptors))
         {
-            char msg[256];
+            char msg[1024];
             memset(msg, 0, sizeof(msg));
-            fgets(msg, 256, stdin);
+            fgets(msg, 1024, stdin);
             trim_newline(msg);
             parse_client_user_input(msg);
         }
