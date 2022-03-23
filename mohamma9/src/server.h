@@ -595,6 +595,7 @@ void start_server(int port)
                 while(1){
                     setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
                     valread = read(sd, buf + index, 256);
+                    // printf("valread: %d\n",valread);
                     if (valread <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
                     {   //printf("%s\n","I read?");
                         // if(valread!=0){

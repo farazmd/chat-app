@@ -137,12 +137,15 @@ void listClients(int *clientList)
     struct sockaddr_storage cp = {0};
     struct sockaddr_in addr;
     socklen_t addr_len = sizeof(addr);
+    int sortedData[30];
+    memcpy(sortedData,clientList,sizeof(sortedData));
+    sort(sortedData,30);
     int count = 0;
     char ip[20];
     char host[256];
     for(int i=0;i<30;i++){
-        if(clientList[i] !=0){
-            getpeername(clientList[i],(struct sockaddr *)&addr, &addr_len);
+        if(sortedData[i] !=0){
+            getpeername(sortedData[i],(struct sockaddr *)&addr, &addr_len);
             memcpy(ip,inet_ntoa(addr.sin_addr),sizeof(ip));
             if(strcmp(ip,"128.205.36.46")==0){
                 strcpy(host,"stones.cse.buffalo.edu");
