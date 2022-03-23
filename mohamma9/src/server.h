@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -15,7 +16,8 @@ int server_socket, total_clients = 30, client_connections[30], client_socket, ma
                    addrlen, sd, valread;
 struct sockaddr_storage clientList[30];
 fd_set read_descriptors;
-char buf[256];
+// char buf[1024];
+struct timeval tv;
 struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 void handleBroadcast(int *client, char *msg);
@@ -449,7 +451,7 @@ void sendQueuedMessages(int *client)
 void parse_client_data(int *client, char *s)
 {
     char *token;
-    printf("%s\n",s);
+    // printf("%s\n",s);
     token = strsep(&s, " ");
     trim_newline(token);
     if (strcmp(token, "REFRESH") == 0)
@@ -464,20 +466,14 @@ void parse_client_data(int *client, char *s)
     {
         handleBroadcast(client, s);
     }
-    else {
-        printf("I'm here\n");
-        char msg[sizeof(token) + sizeof(s)];
-        strcpy(msg,token);
-        strcat(msg,s);
-        handleSendData(client, msg);
-    }
 }
 
 void start_server(int port)
 {
 
     struct sockaddr_storage client_address;
-
+    tv.tv_sec = 0;
+    tv.tv_usec = 500;
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(port);
     server_address.sin_addr.s_addr = INADDR_ANY;
@@ -580,7 +576,7 @@ void start_server(int port)
         {
             char msg[1024];
             memset(msg, 0, sizeof(msg));
-            fgets(msg, 256, stdin);
+            fgets(msg, 1024, stdin);
             trim_newline(msg);
             parse_user_input(msg);
         }
@@ -592,27 +588,54 @@ void start_server(int port)
             {
                 // Check if it was for closing , and also read the
                 // incoming message
-                if ((valread = read(sd, buf, 255)) == 0)
-                {
-                    // Somebody disconnected , get his details and print
-                    getpeername(sd, (struct sockaddr *)&client_address,
-                                (socklen_t *)&addrlen);
-                    // printf("Host disconnected , ip %s , port %d \n" ,
-                    //     inet_ntoa(client_address.sin_addr) , ntohs(((struct sockaddr* )client_address).sin_port));
+                setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
+                int index = 0;
+                char buf[1024];
+                // printf("%s\n","Am I here?");
+                while(1){
+                    setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
+                    if ((valread = read(sd, buf + index, 256)) <= 0)
+                    // {   printf("%s\n","I read?");
+                        if(strlen(buf)!=0){
+                            buf[index + 1] = '\0';
+                            // printf("%s\n","Am I here in buf!=0?");
+                            // printf("%s\n",buf);
+                            parse_client_data(&sd, buf);
+                            break;
+                        }
+                        else {
+                            // Somebody disconnected , get his details and print
+                            getpeername(sd, (struct sockaddr *)&client_address,
+                                        (socklen_t *)&addrlen);
+                            // printf("Host disconnected , ip %s , port %d \n" ,
+                            //     inet_ntoa(client_address.sin_addr) , ntohs(((struct sockaddr* )client_address).sin_port));
 
-                    // Close the socket and mark as 0 in list for reuse
-                    close(sd);
-                    // client_connections[i] = 0;
-                    removeClient(&client_connections[i], client_connections);
-                    break;
-                }
-                else
-                {
-                    // set the string terminating NULL byte on the end
-                    // of the data read
-                    buf[valread + 1] = '\0';
-                    parse_client_data(&sd, buf);
-                    // memset()
+                            // Close the socket and mark as 0 in list for reuse
+                            close(sd);
+                            // client_connections[i] = 0;
+                            removeClient(&client_connections[i], client_connections);
+                        }
+                        
+                        break;
+                    }
+                    else if((errno == EAGAIN || errno == EWOULDBLOCK)){
+                        break;
+                    }
+                    else
+                    {
+                        // set the string terminating NULL byte on the end
+                        // of the data read
+                        index += valread;
+                        // printf("Updating read ?");
+                        if( valread!=0 && valread < 256){
+                            buf[index + 1] = '\0';
+                            printf("%s\n",buf);
+                            parse_client_data(&sd, buf);
+                            break;
+                        }
+                        // buf[valread + 1] = '\0';
+                        // parse_client_data(&sd, buf);
+                    }
                 }
             }
         }

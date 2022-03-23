@@ -13,7 +13,7 @@
 
 #include <arpa/inet.h>
 
-#define MAXDATASIZE 256 // max number of bytes we can get at once
+#define MAXDATASIZE 256 + sizeof("SEND ") + sizeof("-") // max number of bytes we can get at once
 
 struct sockaddr_in *client;
 int clientSock, databytes, serverSock, temp, max_descriptors;

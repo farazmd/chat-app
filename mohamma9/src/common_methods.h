@@ -279,39 +279,22 @@ int sendMessage(int *fd, char *msg)
     unsigned char *data = msg;
     unsigned char *prepend = (char *)"SEND ";
     unsigned char *separator = (char *)"-";
-    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg) + 5];
-    int totalSent = 0;
-    while(totalSent != strlen(msg)){
-        printf("Sending...\n");
-        char * chunk;
-        if(strlen(msg) > 255-(strlen(prepend) + strlen(separator) + strlen(ip))){
-            int count = strlen(msg) - 255 -(strlen(prepend) + strlen(separator) + strlen(ip));
-            strcpy(dataToSend, prepend);
-            strcat(dataToSend, ip);
-            strcat(dataToSend, separator);
-            strncpy(chunk,msg+totalSent,count);
-            strcat(dataToSend, chunk);
-            strcat(dataToSend,"*");
-            totalSent += count;
-            if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
-                perror("Error to send data");
-                return 1;
-            }
-        }
-        else {
-            strcpy(dataToSend, prepend);
-            strcat(dataToSend, ip);
-            strcat(dataToSend, separator);
-            strcat(dataToSend,msg);
-            if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
-                perror("Error to send data");
-                return 1;
-            }
-            break;
-        }
-    }
+    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg)];
 
     // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
+
+    strcpy(dataToSend, prepend);
+    strcat(dataToSend, ip);
+    strcat(dataToSend, separator);
+    strcat(dataToSend, msg);
+    int sent = 0;
+    while(sent < sizeof(dataToSend)){
+        if(send(*fd,dataToSend, 256 ,0)<0){
+            perror("Error to send data");
+            return 1;
+        }
+        sent += 256;
+    }
     return 0;
 }
 #endif
