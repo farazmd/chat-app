@@ -13,7 +13,7 @@
 
 #include <arpa/inet.h>
 
-#define MAXDATASIZE 256 // max number of bytes we can get at once
+#define MAXDATASIZE 1024 // max number of bytes we can get at once
 
 struct sockaddr_in *client;
 int clientSock, databytes, serverSock, temp, max_descriptors;
@@ -280,7 +280,7 @@ void execute_command(char *command, char *data)
 
 void start_client(int port)
 {
-    char buf[256];
+    char buf[1024];
     int yes = 1;
     int msg_count = 0;
     tv.tv_sec = 0;
@@ -310,9 +310,9 @@ void start_client(int port)
 
         if (FD_ISSET(STDIN_FILENO, &read_descriptors))
         {
-            char msg[256];
+            char msg[1024];
             memset(msg, 0, sizeof(msg));
-            fgets(msg, 256, stdin);
+            fgets(msg, 1024, stdin);
             trim_newline(msg);
             parse_client_user_input(msg);
         }
