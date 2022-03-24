@@ -161,7 +161,7 @@ int handleUnblock(int *client,char * ip){
     int count = 0;
     unsigned char *char_data;
     unsigned char *prepend = (char *)"UNBLOCK ";
-    unsigned char dataToSend[sizeof(prepend) + sizeof(ip)];
+    unsigned char dataToSend[sizeof(prepend) + 20];
 
     struct sockaddr_in sa;
     int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
@@ -219,7 +219,7 @@ void handleReceiveData(char *msg)
     token = strsep(&msg, "-");
     trim_newline(token);
     cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
-    printf("msg from: %s\n[msg]:%s\n", token, msg);
+    cse4589_print_and_log("msg from: %s\n[msg]:%s\n", token, msg);
     cse4589_print_and_log("[%s:END]\n", "RECEIVED");
 }
 

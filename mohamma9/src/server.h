@@ -112,7 +112,7 @@ void handleUnblockClient(int *client,char *unblockip){
     struct sockaddr_in addr, clientInfo;
     socklen_t addr_len = sizeof(addr);
     char ip[20];
-    // printf("BLOCK IP: %s",blockip);
+    printf("BLOCK IP: %s",unblockip);
     getpeername(*client, (struct sockaddr *)&addr, &addr_len);
     memcpy(&clientInfo, &addr, addr_len);
     memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
@@ -130,9 +130,9 @@ void handleUnblockClient(int *client,char *unblockip){
         }
     }
     if(done == 1)
-        cse4589_print_and_log("[%s:SUCCESS]\n","BLOCK");
+        cse4589_print_and_log("[%s:SUCCESS]\n","UNBLOCK");
     else if(done == 0)
-        cse4589_print_and_log("[%s:ERROR]\n","BLOCK");
+        cse4589_print_and_log("[%s:ERROR]\n","UNBLOCK");
     cse4589_print_and_log("[%s:END]\n","BLOCK");
     
 }
