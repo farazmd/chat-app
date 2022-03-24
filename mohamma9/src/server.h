@@ -77,6 +77,35 @@ void initBlockList(int *client){
     }
 }
 
+void handleBlockClient(int *client,char *blockip){
+    int done = 0;
+    struct sockaddr_in addr, clientInfo;
+    socklen_t addr_len = sizeof(addr);
+    char ip[20];
+    getpeername(*client, (struct sockaddr *)&addr, &addr_len);
+    memcpy(&clientInfo, &addr, addr_len);
+    memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
+    ip[20] = '\0';
+    for(int i=0; i<30;i++){
+        if(strlen(blockList[i].ip)!=0 && strcmp(blockList[i].ip,ip)==0){
+            for(int j=0;j<30;j++){
+                if(strlen(blockList[i].block_list[j])==0){
+                    strcpy(blockList[i].block_list[j],blockip);
+                    done = 1;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    if(done == 1)
+        cse4589_print_and_log("[%s:SUCCESS]\n","BLOCK");
+    else if(done == 0)
+        cse4589_print_and_log("[%s:ERROR]\n","BLOCK");
+    cse4589_print_and_log("[%s:END]\n","BLOCK");
+    
+}
+
 struct clientStats clientStatsList[30] = {0};
 struct messageQueue clientQueue[30] = {0};
 void handleSendData(int *client, char *msg);
@@ -112,32 +141,6 @@ void initClientQueue(int *client)
                 break;
             }
         }
-    }
-}
-
-void updateBlockList(int *client){
-    struct sockaddr_in addr, clientInfo;
-    socklen_t addr_len = sizeof(addr);
-    char ip[20];
-    // printf("Sending queued messages...\n");
-    getpeername(*client, (struct sockaddr *)&addr, &addr_len);
-    memcpy(&clientInfo, &addr, addr_len);
-    memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
-    ip[20] = '\0';
-    int done = 0;
-    for(int i=0;i<30;i++){
-        if(strcmp(ip,blockList[i].ip)==0){
-            for(int j=0;j<30;j++)
-                if(strlen(blockList[i].block_list[j])==0)
-                    strcpy(blockList[i].block_list[j],ip);
-                done = 1;
-                break;
-            break;
-        }
-    }
-    if(done == 0){
-        cse4589_print_and_log("[%s:ERROR]\n","BLOCK");
-        cse4589_print_and_log("[%s:END]\n","BLOCK");
     }
 }
 
@@ -353,11 +356,13 @@ void handleRefresh(int *client)
 void handleSendData(int *client, char *msg)
 {
     int data_sent = 0;
+    int blocked = 0;
     // printf("%s\n",msg);
     char *token; // who to send
     token = strsep(&msg, "-");
     trim_newline(token);
     trim_newline(msg);
+    struct clientsBlocked clientBLockList;
     for (int i = 0; i < 30; i++)
     {
         struct sockaddr_in addr, clientInfo;
@@ -370,7 +375,7 @@ void handleSendData(int *client, char *msg)
             memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
             ip[20] = '\0';
             if (strcmp(ip, token) == 0)
-            {
+            {   
                 struct sockaddr_in senderAddr, senderInfo;
                 socklen_t senderAddr_len = sizeof(senderAddr);
                 char senderIp[20]; // who sent
@@ -379,31 +384,42 @@ void handleSendData(int *client, char *msg)
                 memcpy(&senderInfo, &senderAddr, senderAddr_len);
                 memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(senderIp));
                 senderIp[20] = '\0';
-                unsigned char *separator = (char *)" ";
-                unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
-                // printf("%d\n",sizeof(data));
-                strcpy(data, senderIp);
-                // printf("%s,%d\n",data,strlen(data));
-                memcpy(data + strlen(senderIp), separator, sizeof(separator) + sizeof(senderIp));
-                // printf("%s,%d\n",data,strlen(data));
-                memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
-                // printf("%s,%d\n",data,strlen(data));
-                // printf("%s,%d\n",messageData,strlen(messageData));
-                int status = sendMessage(&client_connections[i],data);
-                if(status == 0){
-                    cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
-                    cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, ip, msg);
+
+                for(int j=0;j<30;j++){
+                    if(strlen(blockList[j].ip)!=0 && strcmp(blockList[j].ip,senderIp)==0){
+                        for(int k=0;k<30;k++){
+                            if(strlen(blockList[j].block_list[k])!=0 && strcmp(blockList[j].block_list[k],ip)==0)
+                                blocked = 1;
+                        }
+                    }
                 }
-                else if(status == 1)
-                    cse4589_print_and_log("[%s:ERROR]\n","RELAYED");
-                cse4589_print_and_log("[%s:END]\n","RELAYED");
-                updateClientStats(client,1,0);
-                updateClientStats(&client_connections[i],0,1);
-                data_sent = 1;
+                if(blocked == 0){
+                    unsigned char *separator = (char *)" ";
+                    unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
+                    // printf("%d\n",sizeof(data));
+                    strcpy(data, senderIp);
+                    // printf("%s,%d\n",data,strlen(data));
+                    memcpy(data + strlen(senderIp), separator, sizeof(separator) + sizeof(senderIp));
+                    // printf("%s,%d\n",data,strlen(data));
+                    memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
+                    // printf("%s,%d\n",data,strlen(data));
+                    // printf("%s,%d\n",messageData,strlen(messageData));
+                    int status = sendMessage(&client_connections[i],data);
+                    if(status == 0){
+                        cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
+                        cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, ip, msg);
+                    }
+                    else if(status == 1)
+                        cse4589_print_and_log("[%s:ERROR]\n","RELAYED");
+                    cse4589_print_and_log("[%s:END]\n","RELAYED");
+                    updateClientStats(client,1,0);
+                    updateClientStats(&client_connections[i],0,1);
+                    data_sent = 1;
+                }
             }
         }
     }
-    if (data_sent == 0)
+    if (data_sent == 0 && blocked==0)
     {
         struct sockaddr_in senderAddr, senderInfo;
         socklen_t senderAddr_len = sizeof(senderAddr);
@@ -463,6 +479,10 @@ void parse_client_data(int *client, char *s)
     else if (strcmp(token, "BROADCAST") == 0)
     {
         handleBroadcast(client, s);
+    }
+    else if (strcmp(token, "BLOCK") == 0)
+    {
+        handleBlockClient(client, s);
     }
 }
 

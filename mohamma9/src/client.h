@@ -19,6 +19,7 @@ struct sockaddr_in *client;
 int clientSock, databytes, serverSock, temp, max_descriptors;
 int clientListFD[30];
 struct clientData listOfClients[30] = {0};
+char blockedList[30][20];
 int loggedIn = 0;
 int msg_count = 0;
 struct timeval tv;
@@ -99,23 +100,54 @@ void refreshClients(char *msg)
     send(clientSock, msg, sizeof(msg), 0);
 }
 
-void handleBlock(int *client,char * ip){
+int handleBlock(int *client,char * ip){
+    int client_found;
     unsigned char *char_data;
     unsigned char *prepend = (char *)"BLOCK ";
     unsigned char *separator = "-";
     unsigned char dataToSend[sizeof(prepend) + sizeof(separator) + sizeof(ip)];
 
-    strcpy(dataToSend, prepend);
-    strcat(dataToSend, separator);
-    strcat(dataToSend, ip);
-
-    if(send(*client,dataToSend, sizeof(dataToSend),0)<0){
-        cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
-        perror("Error to send data");
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
+    for (int i = 0; i < 30; i++)
+    {
+        if (strlen(blockedList[i]) != 0 && strcmp(blockedList[i], ip) == 0)
+        {
+            // printf("Found client\n");
+            client_found = 1;
+            cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
+            break;
+        }
     }
-    else
-        cse4589_print_and_log("[%s:SUCCESS]\n", "BLOCK");
-    cse4589_print_and_log("[%s:END]\n", "BLOCK");
+    if(client_found == 1)
+        return 1;
+    if (client_found == 0)
+    {
+        for (int i = 0; i < 30; i++)
+        {
+            if (strlen(blockedList[i]) == 0)
+            {
+                strcpy(blockedList[i], ip);
+                break;
+            }
+        }
+    }
+    if(result < 0){
+        cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
+        return 1;
+    }
+    else {
+        strcpy(dataToSend, prepend);
+        strcat(dataToSend, separator);
+        strcat(dataToSend, ip);
+
+        if(send(*client,dataToSend, sizeof(dataToSend),0)<0){
+            cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
+            perror("Error to send data");
+        }
+        else
+            cse4589_print_and_log("[%s:SUCCESS]\n", "BLOCK");
+    }
 }
 
 void handleReceiveData(char *msg)
@@ -202,6 +234,7 @@ void parse_client_user_input(char *s)
     else if (strcmp(token, "BLOCK") == 0)
     {
         handleBlock(&clientSock,s);
+        cse4589_print_and_log("[%s:END]\n", "BLOCK");
     }
     else if (strcmp(token, "LOGIN") == 0)
     {
