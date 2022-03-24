@@ -101,14 +101,27 @@ void refreshClients(char *msg)
 }
 
 int handleBlock(int *client,char * ip){
-    int client_found;
+    int client_found = 0;
+    int count = 0;
     unsigned char *char_data;
     unsigned char *prepend = (char *)"BLOCK ";
-    unsigned char *separator = "-";
-    unsigned char dataToSend[sizeof(prepend) + sizeof(separator) + sizeof(ip)];
+    unsigned char dataToSend[sizeof(prepend) + sizeof(ip)];
 
     struct sockaddr_in sa;
     int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
+    printf("Result: %d\n",result);
+    if(result <= 0){
+        cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
+        return 1;
+    }
+    for(int i = 0;i<30;i++){
+        if(strcmp(listOfClients->ip,ip)==0)
+            count+=1;
+    }
+    if(count == 0){
+        cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
+        return 1;
+    }
     for (int i = 0; i < 30; i++)
     {
         if (strlen(blockedList[i]) != 0 && strcmp(blockedList[i], ip) == 0)
@@ -121,7 +134,7 @@ int handleBlock(int *client,char * ip){
     }
     if(client_found == 1)
         return 1;
-    if (client_found == 0)
+    else if (client_found == 0)
     {
         for (int i = 0; i < 30; i++)
         {
@@ -131,14 +144,7 @@ int handleBlock(int *client,char * ip){
                 break;
             }
         }
-    }
-    if(result < 0){
-        cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
-        return 1;
-    }
-    else {
         strcpy(dataToSend, prepend);
-        strcat(dataToSend, separator);
         strcat(dataToSend, ip);
 
         if(send(*client,dataToSend, sizeof(dataToSend),0)<0){
@@ -147,6 +153,63 @@ int handleBlock(int *client,char * ip){
         }
         else
             cse4589_print_and_log("[%s:SUCCESS]\n", "BLOCK");
+    }
+}
+
+int handleUnblock(int *client,char * ip){
+    int client_found = 0;
+    int count = 0;
+    unsigned char *char_data;
+    unsigned char *prepend = (char *)"UNBLOCK ";
+    unsigned char dataToSend[sizeof(prepend) + sizeof(ip)];
+
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
+    printf("Result: %d\n",result);
+    if(result <= 0){
+        cse4589_print_and_log("[%s:ERROR]\n", "UNBLOCK");
+        return 1;
+    }
+    for(int i = 0;i<30;i++){
+        if(strcmp(listOfClients->ip,ip)==0)
+            count+=1;
+    }
+    if(count == 0){
+        cse4589_print_and_log("[%s:ERROR]\n", "UNBLOCK");
+        return 1;
+    }
+    for (int i = 0; i < 30; i++)
+    {
+        if (strlen(blockedList[i]) != 0 && strcmp(blockedList[i], ip) == 0)
+        {
+            // printf("Found client\n");
+            client_found = 1;
+            break;
+        }
+    }
+    if(client_found == 0){
+        cse4589_print_and_log("[%s:ERROR]\n", "UNBLOCK");
+        return 1;
+    }
+    else if (client_found == 1)
+    {
+        for (int i = 0; i < 30; i++)
+        {
+            if (strcmp(blockedList[i],ip) == 0)
+            {
+                strcpy(blockedList[i], "");
+                break;
+            }
+        }
+        strcpy(dataToSend, prepend);
+        strcat(dataToSend, ip);
+
+        if(send(*client,dataToSend, sizeof(dataToSend),0)<0){
+            cse4589_print_and_log("[%s:ERROR]\n", "UNBLOCK");
+            perror("Error to send data");
+        }
+        else
+            cse4589_print_and_log("[%s:SUCCESS]\n", "UNBLOCK");
     }
 }
 
@@ -236,6 +299,11 @@ void parse_client_user_input(char *s)
         handleBlock(&clientSock,s);
         cse4589_print_and_log("[%s:END]\n", "BLOCK");
     }
+    else if (strcmp(token, "UNBLOCK") == 0)
+    {
+        handleBlock(&clientSock,s);
+        cse4589_print_and_log("[%s:END]\n", "UNBLOCK");
+    }
     else if (strcmp(token, "LOGIN") == 0)
     {
         int i = login(s);
@@ -323,6 +391,9 @@ void start_client(int port)
     client_address.sin_port = htons(port);
     client = &client_address;
     puts("Client started");
+    for(int i =0;i<30;i++){
+        blockedList[i][20] = '\0';
+    }
 
     while (1)
     {

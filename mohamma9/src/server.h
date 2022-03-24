@@ -82,6 +82,7 @@ void handleBlockClient(int *client,char *blockip){
     struct sockaddr_in addr, clientInfo;
     socklen_t addr_len = sizeof(addr);
     char ip[20];
+    // printf("BLOCK IP: %s",blockip);
     getpeername(*client, (struct sockaddr *)&addr, &addr_len);
     memcpy(&clientInfo, &addr, addr_len);
     memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
@@ -91,6 +92,36 @@ void handleBlockClient(int *client,char *blockip){
             for(int j=0;j<30;j++){
                 if(strlen(blockList[i].block_list[j])==0){
                     strcpy(blockList[i].block_list[j],blockip);
+                    done = 1;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    if(done == 1)
+        cse4589_print_and_log("[%s:SUCCESS]\n","BLOCK");
+    else if(done == 0)
+        cse4589_print_and_log("[%s:ERROR]\n","BLOCK");
+    cse4589_print_and_log("[%s:END]\n","BLOCK");
+    
+}
+
+void handleUnblockClient(int *client,char *unblockip){
+    int done = 0;
+    struct sockaddr_in addr, clientInfo;
+    socklen_t addr_len = sizeof(addr);
+    char ip[20];
+    // printf("BLOCK IP: %s",blockip);
+    getpeername(*client, (struct sockaddr *)&addr, &addr_len);
+    memcpy(&clientInfo, &addr, addr_len);
+    memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
+    ip[20] = '\0';
+    for(int i=0; i<30;i++){
+        if(strlen(blockList[i].ip)!=0 && strcmp(blockList[i].ip,ip)==0){
+            for(int j=0;j<30;j++){
+                if(strcmp(blockList[i].block_list[j],unblockip)==0){
+                    strcpy(blockList[i].block_list[j],"");
                     done = 1;
                     break;
                 }
@@ -384,11 +415,13 @@ void handleSendData(int *client, char *msg)
                 memcpy(&senderInfo, &senderAddr, senderAddr_len);
                 memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(senderIp));
                 senderIp[20] = '\0';
-
+                // printf("Sender: %s, Receiver: %s\n",senderIp,ip);
                 for(int j=0;j<30;j++){
-                    if(strlen(blockList[j].ip)!=0 && strcmp(blockList[j].ip,senderIp)==0){
+                    if(strlen(blockList[j].ip)!=0 && strcmp(blockList[j].ip,ip)==0){
+                        // printf("Found client\n");
                         for(int k=0;k<30;k++){
-                            if(strlen(blockList[j].block_list[k])!=0 && strcmp(blockList[j].block_list[k],ip)==0)
+                            if(strlen(blockList[j].block_list[k])!=0 && strcmp(blockList[j].block_list[k],senderIp)==0)
+                                // printf("Am I blocked ?\n");
                                 blocked = 1;
                         }
                     }
@@ -483,6 +516,10 @@ void parse_client_data(int *client, char *s)
     else if (strcmp(token, "BLOCK") == 0)
     {
         handleBlockClient(client, s);
+    }
+    else if (strcmp(token, "UNBLOCK") == 0)
+    {
+        handleUnblockClient(client, s);
     }
 }
 
