@@ -219,7 +219,7 @@ void handleReceiveData(char *msg)
     token = strsep(&msg, "-");
     trim_newline(token);
     cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
-    cse4589_print_and_log("msg from: %s\n[msg]:%s\n", token, msg);
+    cse4589_print_and_log("msg from:%s\n[msg]:%s\n", token, msg);
     cse4589_print_and_log("[%s:END]\n", "RECEIVED");
 }
 
