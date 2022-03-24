@@ -395,12 +395,12 @@ void handleSendData(int *client, char *msg)
                 if(status == 0){
                     cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
                     cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, ip, msg);
+                    updateClientStats(&client_connections[i],0,1);
                 }
                 else if(status == 1)
                     cse4589_print_and_log("[%s:ERROR]\n","RELAYED");
                 cse4589_print_and_log("[%s:END]\n","RELAYED");
                 updateClientStats(client,1,0);
-                updateClientStats(&client_connections[i],0,1);
                 data_sent = 1;
             }
         }
@@ -627,7 +627,7 @@ void start_server(int port)
                         // printf("Updating read ?");
                         if( valread!=0 && valread < 256){
                             buf[index + 1] = '\0';
-                            printf("%s\n",buf);
+                            // printf("%s\n",buf);
                             parse_client_data(&sd, buf);
                             break;
                         }

@@ -139,7 +139,7 @@ void listClients(int *clientList)
     socklen_t addr_len = sizeof(addr);
     int sortedData[30];
     memcpy(sortedData,clientList,sizeof(sortedData));
-    sort(sortedData,30);
+    // sort(sortedData,30);
     int count = 0;
     char ip[20];
     char host[256];
