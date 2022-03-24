@@ -13,7 +13,7 @@
 
 #include <arpa/inet.h>
 
-#define MAXDATASIZE 1024 // max number of bytes we can get at once
+#define MAXDATASIZE 8046 // max number of bytes we can get at once
 
 struct sockaddr_in *client;
 int clientSock, databytes, serverSock, temp, max_descriptors;
@@ -301,7 +301,7 @@ void parse_client_user_input(char *s)
     }
     else if (strcmp(token, "UNBLOCK") == 0)
     {
-        handleBlock(&clientSock,s);
+        handleUnblock(&clientSock,s);
         cse4589_print_and_log("[%s:END]\n", "UNBLOCK");
     }
     else if (strcmp(token, "LOGIN") == 0)
@@ -381,7 +381,7 @@ void execute_command(char *command, char *data)
 
 void start_client(int port)
 {
-    char buf[1024];
+    char buf[8046];
     int yes = 1;
     int msg_count = 0;
     tv.tv_sec = 0;

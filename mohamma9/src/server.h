@@ -15,7 +15,7 @@ int server_socket, total_clients = 30, client_connections[30], client_socket, ma
                    addrlen, sd, valread;
 struct sockaddr_storage clientList[30];
 fd_set read_descriptors;
-char buf[1024];
+char buf[8046];
 struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 void handleBroadcast(int *client, char *msg);
@@ -642,7 +642,7 @@ void start_server(int port)
             {
                 // Check if it was for closing , and also read the
                 // incoming message
-                if ((valread = read(sd, buf, 1024)) == 0)
+                if ((valread = read(sd, buf, 8046)) == 0)
                 {
                     // Somebody disconnected , get his details and print
                     getpeername(sd, (struct sockaddr *)&client_address,
