@@ -105,7 +105,7 @@ int handleBlock(int *client,char * ip){
     int count = 0;
     unsigned char *char_data;
     unsigned char *prepend = (char *)"BLOCK ";
-    unsigned char dataToSend[sizeof(prepend) + sizeof(ip)];
+    unsigned char dataToSend[sizeof(prepend) + 20];
 
     struct sockaddr_in sa;
     int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
