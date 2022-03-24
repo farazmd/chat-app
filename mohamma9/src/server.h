@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -16,8 +15,7 @@ int server_socket, total_clients = 30, client_connections[30], client_socket, ma
                    addrlen, sd, valread;
 struct sockaddr_storage clientList[30];
 fd_set read_descriptors;
-// char buf[1024];
-struct timeval tv;
+char buf[1024];
 struct sockaddr_in server_address;
 char clientData[30][sizeof(struct sockaddr_in)];
 void handleBroadcast(int *client, char *msg);
@@ -395,12 +393,12 @@ void handleSendData(int *client, char *msg)
                 if(status == 0){
                     cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
                     cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, ip, msg);
-                    updateClientStats(&client_connections[i],0,1);
                 }
                 else if(status == 1)
                     cse4589_print_and_log("[%s:ERROR]\n","RELAYED");
                 cse4589_print_and_log("[%s:END]\n","RELAYED");
                 updateClientStats(client,1,0);
+                updateClientStats(&client_connections[i],0,1);
                 data_sent = 1;
             }
         }
@@ -472,8 +470,7 @@ void start_server(int port)
 {
 
     struct sockaddr_storage client_address;
-    tv.tv_sec = 0;
-    tv.tv_usec = 500;
+
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(port);
     server_address.sin_addr.s_addr = INADDR_ANY;
@@ -588,52 +585,25 @@ void start_server(int port)
             {
                 // Check if it was for closing , and also read the
                 // incoming message
-                setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
-                int index = 0;
-                char buf[1024];
-                // printf("%s\n","Am I here?");
-                while(1){
-                    setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
-                    valread = read(sd, buf + index, 256);
-                    // printf("valread: %d\n",valread);
-                    if (valread <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
-                    {   //printf("%s\n","I read?");
-                        // if(valread!=0){
-                            buf[index + 1] = '\0';
-                            // printf("%s\n","Am I here in buf!=0?");
-                            // printf("%s\n",buf);
-                            parse_client_data(&sd, buf);
-                            break;
-                        // }
-                    }
-                    else if(valread == 0){
-                            // Somebody disconnected , get his details and print
-                            getpeername(sd, (struct sockaddr *)&client_address,
-                                        (socklen_t *)&addrlen);
-                            // printf("Host disconnected , ip %s , port %d \n" ,
-                            //     inet_ntoa(client_address.sin_addr) , ntohs(((struct sockaddr* )client_address).sin_port));
+                if ((valread = read(sd, buf, 1024)) == 0)
+                {
+                    // Somebody disconnected , get his details and print
+                    getpeername(sd, (struct sockaddr *)&client_address,
+                                (socklen_t *)&addrlen);
+                    // printf("Host disconnected , ip %s , port %d \n" ,
+                    //     inet_ntoa(client_address.sin_addr) , ntohs(((struct sockaddr* )client_address).sin_port));
 
-                            // Close the socket and mark as 0 in list for reuse
-                            close(sd);
-                            // client_connections[i] = 0;
-                            removeClient(&client_connections[i], client_connections);
-                            break;
-                    }
-                    else
-                    {
-                        // set the string terminating NULL byte on the end
-                        // of the data read
-                        index += valread;
-                        // printf("Updating read ?");
-                        if( valread!=0 && valread < 256){
-                            buf[index + 1] = '\0';
-                            // printf("%s\n",buf);
-                            parse_client_data(&sd, buf);
-                            break;
-                        }
-                        // buf[valread + 1] = '\0';
-                        // parse_client_data(&sd, buf);
-                    }
+                    // Close the socket and mark as 0 in list for reuse
+                    close(sd);
+                    // client_connections[i] = 0;
+                    removeClient(&client_connections[i], client_connections);
+                }
+                else
+                {
+                    // set the string terminating NULL byte on the end
+                    // of the data read
+                    buf[valread + 1] = '\0';
+                    parse_client_data(&sd, buf);
                 }
             }
         }
@@ -646,14 +616,6 @@ void handleBroadcast(int *client, char *msg)
     // token = strsep(&msg, "-");
     // trim_newline(token);
     trim_newline(msg);
-    char senderIp[20];
-    struct sockaddr_in senderAddr, senderInfo;
-    socklen_t senderAddr_len = sizeof(senderAddr);
-    unsigned char *messageData = msg;
-    getpeername(*client, (struct sockaddr *)&senderAddr, &senderAddr_len);
-    memcpy(&senderInfo, &senderAddr, senderAddr_len);
-    memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(senderIp));
-    senderIp[20] = '\0';
     for (int i = 0; i < 30; i++)
     {
         struct sockaddr_in addr, clientInfo;
@@ -665,6 +627,14 @@ void handleBroadcast(int *client, char *msg)
             memcpy(&clientInfo, &addr, addr_len);
             memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
             ip[20] = '\0';
+            struct sockaddr_in senderAddr, senderInfo;
+            socklen_t senderAddr_len = sizeof(senderAddr);
+            char senderIp[20];
+            unsigned char *messageData = msg;
+            getpeername(*client, (struct sockaddr *)&senderAddr, &senderAddr_len);
+            memcpy(&senderInfo, &senderAddr, senderAddr_len);
+            memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(ip));
+            senderIp[20] = '\0';
             unsigned char *separator = (char *)" ";
             unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
             // printf("%d\n", sizeof(data));
@@ -675,10 +645,10 @@ void handleBroadcast(int *client, char *msg)
             memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
             // printf("%s,%d\n", data, strlen(data));
             // printf("%s,%d\n", messageData, strlen(messageData));
+            cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
+            cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, "255.255.255.255", msg);
+            cse4589_print_and_log("[%s:END]\n","RELAYED");
             sendMessage(&client_connections[i], data);
         }
     }
-    cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
-    cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, "255.255.255.255", msg);
-    cse4589_print_and_log("[%s:END]\n","RELAYED");
 }

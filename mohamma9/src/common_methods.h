@@ -137,15 +137,12 @@ void listClients(int *clientList)
     struct sockaddr_storage cp = {0};
     struct sockaddr_in addr;
     socklen_t addr_len = sizeof(addr);
-    int sortedData[30];
-    memcpy(sortedData,clientList,sizeof(sortedData));
-    // sort(sortedData,30);
     int count = 0;
     char ip[20];
     char host[256];
     for(int i=0;i<30;i++){
-        if(sortedData[i] !=0){
-            getpeername(sortedData[i],(struct sockaddr *)&addr, &addr_len);
+        if(clientList[i] !=0){
+            getpeername(clientList[i],(struct sockaddr *)&addr, &addr_len);
             memcpy(ip,inet_ntoa(addr.sin_addr),sizeof(ip));
             if(strcmp(ip,"128.205.36.46")==0){
                 strcpy(host,"stones.cse.buffalo.edu");
@@ -282,7 +279,7 @@ int sendMessage(int *fd, char *msg)
     unsigned char *data = msg;
     unsigned char *prepend = (char *)"SEND ";
     unsigned char *separator = (char *)"-";
-    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg)];
+    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg) + 5];
 
     // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
 
@@ -290,13 +287,17 @@ int sendMessage(int *fd, char *msg)
     strcat(dataToSend, ip);
     strcat(dataToSend, separator);
     strcat(dataToSend, msg);
-    int sent = 0;
-    while(sent < sizeof(dataToSend)){
-        if(send(*fd,dataToSend, 256 ,0)<0){
-            perror("Error to send data");
-            return 1;
-        }
-        sent += 256;
+    // memcpy(dataToSend+strlen(prepend),ip,sizeof(ip));
+    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
+    // memcpy(dataToSend+strlen(prepend)+sizeof(ip),separator,sizeof(separator));
+    // printf("%s,%d\n", dataToSend, sizeof(ip) + strlen(prepend));
+    // printf("%s,%d\n", dataToSend, strlen(dataToSend));
+    // memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + strlen(separator), data, sizeof(data));
+    // printf("%s,%d\n",dataToSend,strlen(dataToSend));
+    // printf("%d\n",*fd);
+    if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
+        perror("Error to send data");
+        return 1;
     }
     return 0;
 }
