@@ -414,10 +414,11 @@ void start_client(int port)
 
         if (FD_ISSET(STDIN_FILENO, &read_descriptors))
         {
-            char msg[1024];
+            char msg[2048];
             memset(msg, 0, sizeof(msg));
-            fgets(msg, 1024, stdin);
+            fgets(msg, 2048, stdin);
             trim_newline(msg);
+            // printf("%s\n",msg);
             parse_client_user_input(msg);
         }
         else if (FD_ISSET(clientSock, &read_descriptors))
@@ -465,7 +466,7 @@ void Broadcast(char *msg)
     trim_newline(msg);
     unsigned char *data = msg;
     unsigned char *prepend = (char *)"BROADCAST ";
-    unsigned char dataToSend[sizeof(prepend) + sizeof(msg) + 5];
+    unsigned char dataToSend[sizeof(prepend) + 2048 + 5];
 
     strcpy(dataToSend, prepend);
     strcat(dataToSend, msg);

@@ -279,7 +279,7 @@ int sendMessage(int *fd, char *msg)
     unsigned char *data = msg;
     unsigned char *prepend = (char *)"SEND ";
     unsigned char *separator = (char *)"-";
-    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + sizeof(msg) + 5];
+    unsigned char dataToSend[sizeof(prepend) + sizeof(ip) + sizeof(separator) + 2048 + 5];
 
     // printf("%s,%s,%d\n",ip,msg,sizeof(dataToSend));
 
@@ -287,14 +287,6 @@ int sendMessage(int *fd, char *msg)
     strcat(dataToSend, ip);
     strcat(dataToSend, separator);
     strcat(dataToSend, msg);
-    // memcpy(dataToSend+strlen(prepend),ip,sizeof(ip));
-    // printf("%s,%d\n",dataToSend,sizeof(ip)+strlen(prepend));
-    // memcpy(dataToSend+strlen(prepend)+sizeof(ip),separator,sizeof(separator));
-    // printf("%s,%d\n", dataToSend, sizeof(ip) + strlen(prepend));
-    // printf("%s,%d\n", dataToSend, strlen(dataToSend));
-    // memcpy(dataToSend+strlen(prepend)+ sizeof(ip) + strlen(separator), data, sizeof(data));
-    // printf("%s,%d\n",dataToSend,strlen(dataToSend));
-    // printf("%d\n",*fd);
     if(send(*fd,dataToSend, sizeof(dataToSend),0)<0){
         perror("Error to send data");
         return 1;

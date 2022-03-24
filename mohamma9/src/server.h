@@ -428,13 +428,14 @@ void handleSendData(int *client, char *msg)
                 }
                 if(blocked == 0){
                     unsigned char *separator = (char *)" ";
-                    unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
+                    unsigned char data[sizeof(senderIp) + sizeof(separator) + 2048];
                     // printf("%d\n",sizeof(data));
                     strcpy(data, senderIp);
                     // printf("%s,%d\n",data,strlen(data));
                     memcpy(data + strlen(senderIp), separator, sizeof(separator) + sizeof(senderIp));
                     // printf("%s,%d\n",data,strlen(data));
-                    memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
+                    // memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
+                    strcat(data,messageData);
                     // printf("%s,%d\n",data,strlen(data));
                     // printf("%s,%d\n",messageData,strlen(messageData));
                     int status = sendMessage(&client_connections[i],data);
@@ -628,9 +629,9 @@ void start_server(int port)
         }
         else if (FD_ISSET(STDIN_FILENO, &read_descriptors))
         {
-            char msg[1024];
+            char msg[8046];
             memset(msg, 0, sizeof(msg));
-            fgets(msg, 1024, stdin);
+            fgets(msg, 8046, stdin);
             trim_newline(msg);
             parse_user_input(msg);
         }
@@ -693,13 +694,14 @@ void handleBroadcast(int *client, char *msg)
             memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(ip));
             senderIp[20] = '\0';
             unsigned char *separator = (char *)" ";
-            unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
+            unsigned char data[sizeof(senderIp) + sizeof(separator) + 2048];
             // printf("%d\n", sizeof(data));
             strcpy(data, senderIp);
             // printf("%s,%d\n", data, strlen(data));
             memcpy(data + strlen(senderIp), separator, sizeof(separator) + sizeof(senderIp));
             // printf("%s,%d\n", data, strlen(data));
-            memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
+            // memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
+            strcat(data,messageData);
             // printf("%s,%d\n", data, strlen(data));
             // printf("%s,%d\n", messageData, strlen(messageData));
             cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
