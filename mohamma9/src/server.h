@@ -646,6 +646,14 @@ void handleBroadcast(int *client, char *msg)
     // token = strsep(&msg, "-");
     // trim_newline(token);
     trim_newline(msg);
+    char senderIp[20];
+    struct sockaddr_in senderAddr, senderInfo;
+    socklen_t senderAddr_len = sizeof(senderAddr);
+    unsigned char *messageData = msg;
+    getpeername(*client, (struct sockaddr *)&senderAddr, &senderAddr_len);
+    memcpy(&senderInfo, &senderAddr, senderAddr_len);
+    memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(senderIp));
+    senderIp[20] = '\0';
     for (int i = 0; i < 30; i++)
     {
         struct sockaddr_in addr, clientInfo;
@@ -657,14 +665,6 @@ void handleBroadcast(int *client, char *msg)
             memcpy(&clientInfo, &addr, addr_len);
             memcpy(ip, inet_ntoa(clientInfo.sin_addr), sizeof(ip));
             ip[20] = '\0';
-            struct sockaddr_in senderAddr, senderInfo;
-            socklen_t senderAddr_len = sizeof(senderAddr);
-            char senderIp[20];
-            unsigned char *messageData = msg;
-            getpeername(*client, (struct sockaddr *)&senderAddr, &senderAddr_len);
-            memcpy(&senderInfo, &senderAddr, senderAddr_len);
-            memcpy(senderIp, inet_ntoa(senderInfo.sin_addr), sizeof(ip));
-            senderIp[20] = '\0';
             unsigned char *separator = (char *)" ";
             unsigned char data[sizeof(senderIp) + sizeof(separator) + sizeof(msg)];
             // printf("%d\n", sizeof(data));
@@ -675,10 +675,10 @@ void handleBroadcast(int *client, char *msg)
             memcpy(data + strlen(senderIp) + strlen(separator), messageData, sizeof(separator) + sizeof(senderIp) + sizeof(messageData));
             // printf("%s,%d\n", data, strlen(data));
             // printf("%s,%d\n", messageData, strlen(messageData));
-            cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
-            cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, "255.255.255.255", msg);
-            cse4589_print_and_log("[%s:END]\n","RELAYED");
             sendMessage(&client_connections[i], data);
         }
     }
+    cse4589_print_and_log("[%s:SUCCESS]\n","RELAYED");
+    cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", senderIp, "255.255.255.255", msg);
+    cse4589_print_and_log("[%s:END]\n","RELAYED");
 }
