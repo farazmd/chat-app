@@ -234,7 +234,7 @@ void listBlockedClients(int *clientList,char *blockedIp, int* count)
                 else {
                     strcpy(host,"docker");
                 }
-                cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", (*count + 1), host, data[i].ip, ntohs(addr.sin_port));
+                cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", (*count + 1), host, data[i].ip, data[i].port);
                 // printf("Peer IP address: %s\n", inet_ntoa(addr.sin_addr));
                 // printf("Peer port      : %u\n", ntohs(addr.sin_port));
                 *count++;
