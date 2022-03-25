@@ -177,6 +177,72 @@ void listClients(int *clientList)
     }
 }
 
+void listBlockedClients(int *clientList,char *blockedIp, int* count)
+{
+    struct sockaddr_storage cp = {0};
+    struct sockaddr_in addr;
+    socklen_t addr_len = sizeof(addr);
+    struct clientData data[30];
+    // int count = 0;
+    char ip[20];
+    char host[256];
+
+    for (int i = 0; i < 30; i++)
+    {
+        // data[i] = clientList[i];
+        struct sockaddr_in addr, clientInfo;
+        socklen_t addr_len = sizeof(addr);
+        struct hostent *he;
+        if(clientList[i]!=0){
+            getpeername(clientList[i],(struct sockaddr *)&addr,&addr_len);
+            memcpy(&clientInfo,&addr,addr_len);
+            memcpy(data[i].ip,inet_ntoa(clientInfo.sin_addr),sizeof(data[i].ip));
+            data[i].ip[20] = '\0';
+            data[i].port = clientInfo.sin_port;
+        }
+        else
+        {
+            memcpy(data[i].ip, "", sizeof(data[i].ip));
+            data[i].ip[20] = '\0';
+            data[i].port = 0;
+        }
+    }
+    sort(data,30);
+    for(int i=0;i<30;i++){
+        if(strlen(data[i].ip)>0 && data[i].port!=0){
+            // getpeername(clientList[i],(struct sockaddr *)&addr, &addr_len);
+            // memcpy(ip,inet_ntoa(addr.sin_addr),sizeof(ip));
+            if(strcmp(blockedIp,data[i].ip)==0){
+                if(strcmp(data[i].ip,"128.205.36.46")==0){
+                strcpy(host,"stones.cse.buffalo.edu");
+                }
+                else if(strcmp(data[i].ip,"128.205.36.35")==0){
+                    strcpy(host,"embankment.cse.buffalo.edu");
+                }
+                else if(strcmp(data[i].ip,"128.205.36.33")==0){
+                    strcpy(host,"highgate.cse.buffalo.edu");
+                }
+                else if(strcmp(data[i].ip,"128.205.36.34")==0){
+                    strcpy(host,"euston.cse.buffalo.edu");
+                }
+                else if(strcmp(data[i].ip,"128.205.36.8")==0){
+                    strcpy(host,"timberlake.cse.buffalo.edu");
+                }
+                else if(strcmp(data[i].ip,"128.205.36.36")==0){
+                    strcpy(host,"underground.cse.buffalo.edu");
+                }
+                else {
+                    strcpy(host,"docker");
+                }
+                cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", (*count + 1), host, data[i].ip, ntohs(addr.sin_port));
+                // printf("Peer IP address: %s\n", inet_ntoa(addr.sin_addr));
+                // printf("Peer port      : %u\n", ntohs(addr.sin_port));
+                *count++;
+            }
+        }
+    }
+}
+
 void sendClientList(int *client, int *clientList)
 {
     struct clientData data[30];

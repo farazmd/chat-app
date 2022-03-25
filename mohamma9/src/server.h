@@ -137,6 +137,27 @@ void handleUnblockClient(int *client,char *unblockip){
     
 }
 
+int listBlocked(char *ip){
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
+    printf("Result: %d\n",result);
+    if(result <= 0){
+        cse4589_print_and_log("[%s:ERROR]\n", "BLOCKED");
+        return 1;
+    }
+    int count = 0;
+    cse4589_print_and_log("[%s:SUCCESS]\n", "BLOCKED");
+    for(int i=0; i<30;i++){
+        if(strlen(blockList[i].ip)!=0 && strcmp(blockList[i].ip,ip)==0){
+            for(int j=0;j<30;j++){
+                if(strlen(blockList[i].block_list[j])!=0){
+                    listBlockedClients(client_connections,blockList[i].block_list[j],&count);
+                }
+            }
+        }
+    }
+}
+
 struct clientStats clientStatsList[30] = {0};
 struct messageQueue clientQueue[30] = {0};
 void handleSendData(int *client, char *msg);
@@ -371,6 +392,13 @@ void parse_user_input(char *s)
         cse4589_print_and_log("[%s:SUCCESS]\n", "STATISTICS");
         showStats();
         cse4589_print_and_log("[%s:END]\n", "STATISTICS");
+    }
+
+    else if (strcmp(token, "BLOCKED") == 0)
+    {
+        // cse4589_print_and_log("[%s:SUCCESS]\n", "BLOCKED");
+        listBlocked(s);
+        cse4589_print_and_log("[%s:END]\n", "BLOCKED");
     }
 
     else
